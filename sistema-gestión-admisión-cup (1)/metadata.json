@@ -1,0 +1,6 @@
+{
+  "name": "Sistema Gestión Admisión CUP",
+  "description": "Sistema para inscripción, evaluación y admisión universitaria - FICCT - UAGRM",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
