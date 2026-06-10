@@ -47,9 +47,9 @@ class DatabaseSeeder extends Seeder
         // ----------------------------------------------------------------------------
         
         $c1 = Carrera::create(['id' => 1, 'nombre' => 'Ingeniería Informática']);
-        $c2 = Carrera::create(['id' => 2, 'nombre' => 'Ingeniería de Sistemas']);
-        $c3 = Carrera::create(['id' => 3, 'nombre' => 'Ingeniería en Redes y Telecomunicaciones']);
-        $c4 = Carrera::create(['id' => 4, 'nombre' => 'Ingeniería en Ciencias de la Computación']);
+        $c2 = Carrera::create(['id' => 2, 'nombre' => 'Ingeniería en Sistemas']);
+        $c3 = Carrera::create(['id' => 3, 'nombre' => 'Ingeniería Redes y Telecomunicaciones']);
+        $c4 = Carrera::create(['id' => 4, 'nombre' => 'Robótica']);
 
         $m1 = Materia::create(['id' => 1, 'nombre' => 'Computación']);
         $m2 = Materia::create(['id' => 2, 'nombre' => 'Matemáticas']);

@@ -1,23 +1,25 @@
 import React, { useState } from 'react';
 import { Usuario, EstudianteDetalle, Pago, Nota, Asistencia, Carrera, Materia, Grupo } from '../types';
-import { 
-  CheckCircle, 
-  AlertTriangle, 
-  CreditCard, 
-  DollarSign, 
-  BookOpen, 
-  Calendar, 
-  ClipboardCheck, 
-  Download, 
-  Upload, 
-  ArrowRight, 
-  Award, 
-  Check, 
+import {
+  CheckCircle,
+  AlertTriangle,
+  CreditCard,
+  DollarSign,
+  BookOpen,
+  Calendar,
+  ClipboardCheck,
+  Download,
+  Upload,
+  ArrowRight,
+  Award,
+  Check,
   FileCheck,
   User,
-  Clock
+  Clock,
+  Key
 } from 'lucide-react';
 import { calculateStudentGPA } from '../dataStore';
+import { div } from 'motion/react-client';
 
 interface EstudiantePanelProps {
   user: Usuario;
@@ -31,6 +33,7 @@ interface EstudiantePanelProps {
   grupos: Grupo[];
   onUploadVoucher: (reference: string) => void;
   onUpdateDocs: () => void;
+  onUpdatePassword: (newPass: string) => void;
   admissionResult: any; // Final outcome with Career allocations
   triggerAlert?: (message: string, title?: string) => void;
   triggerConfirm?: (message: string, onConfirm: () => void, title?: string) => void;
@@ -48,6 +51,7 @@ export default function EstudiantePanel({
   grupos,
   onUploadVoucher,
   onUpdateDocs,
+  onUpdatePassword,
   admissionResult,
   triggerAlert
 }: EstudiantePanelProps) {
@@ -56,6 +60,13 @@ export default function EstudiantePanel({
   const [showPayModal, setShowPayModal] = useState(false);
   const [simulatedFileUploaded, setSimulatedFileUploaded] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'academico' | 'pagos'>('academico');
+
+  // Password change modal states
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   // Find payment status
   const currentPay = payments.find(p => p.estudiante_id === user.id);
@@ -112,6 +123,39 @@ export default function EstudiantePanel({
     setShowPayModal(false);
   };
 
+  const handlePasswordChangeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+
+    if (oldPassword !== user.password) {
+      setPasswordError('La contraseña antigua ingresada es incorrecta.');
+      return;
+    }
+
+    if (!newPassword.trim()) {
+      setPasswordError('La nueva contraseña no puede estar vacía.');
+      return;
+    }
+
+    if (newPassword === oldPassword) {
+      setPasswordError('La nueva contraseña debe ser diferente de la antigua.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Las nuevas contraseñas no coinciden.');
+      return;
+    }
+
+    onUpdatePassword(newPassword);
+
+    // reset form and close
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setShowPasswordModal(false);
+  };
+
   // Safe teacher lookup
   const getTeacherForGroup = (docenteId: string | null) => {
     if (!docenteId) return 'MSc. Docente Asignado por la Universidad';
@@ -121,20 +165,27 @@ export default function EstudiantePanel({
 
   return (
     <div id="estudiante-portal" className="space-y-6">
-      
+
       {/* Upper Status Cards Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        
+
         {/* Welcome Card */}
         <div className="bg-white rounded-2xl shadow-md border-2 border-slate-200 p-5 flex items-center gap-4 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full blur-xl pointer-events-none"></div>
           <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-white font-sans font-black text-lg border-2 border-slate-700 shadow shrink-0">
             {user.nombre_completo.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
           </div>
-          <div>
+          <div className="flex flex-col">
             <span className="text-[9px] uppercase font-mono font-black text-blue-600 tracking-wider">Perfil Académico Activo</span>
             <h3 className="font-sans font-black text-slate-900 leading-tight text-base">{user.nombre_completo.toUpperCase()}</h3>
             <p className="font-mono text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-wider">REGISTRO: {user.codigo_registro}</p>
+            <button
+              type="button"
+              onClick={() => setShowPasswordModal(true)}
+              className="mt-1 text-left text-[9px] text-blue-605 hover:text-blue-800 font-sans font-black uppercase tracking-wider underline cursor-pointer flex items-center gap-1 focus:outline-none"
+            >
+              <Key className="w-3 h-3" /> Cambiar Contraseña
+            </button>
           </div>
         </div>
 
@@ -154,8 +205,8 @@ export default function EstudiantePanel({
             </div>
             <p className="text-[10px] text-slate-500 leading-none">Matrícula preuniversitaria obligatoria.</p>
           </div>
-          <button 
-            onClick={() => setActiveSubTab('pagos')} 
+          <button
+            onClick={() => setActiveSubTab('pagos')}
             className="cursor-pointer bg-slate-100 hover:bg-slate-200 text-[10px] font-black uppercase text-slate-700 px-3 py-2 rounded-xl border border-slate-200 transition-all shrink-0"
           >
             Ver Formas de Pago
@@ -170,9 +221,8 @@ export default function EstudiantePanel({
             <p className="text-[10px] text-slate-400 leading-none">Min. Aprobación: 60 puntos.</p>
           </div>
           <div className="text-right">
-            <span className={`text-[9px] px-2.5 py-1 rounded-lg font-black tracking-wider block ${
-              gpa >= 60 ? 'bg-emerald-550/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-550/20 text-rose-400 border border-rose-500/30'
-            }`}>
+            <span className={`text-[9px] px-2.5 py-1 rounded-lg font-black tracking-wider block ${gpa >= 60 ? 'bg-emerald-550/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-550/20 text-rose-400 border border-rose-500/30'
+              }`}>
               {gpa >= 60 ? 'PROMEDIO APROBATORIO' : 'REPROBANDO'}
             </span>
           </div>
@@ -184,21 +234,19 @@ export default function EstudiantePanel({
       <div className="bg-white rounded-xl border-2 border-slate-200 p-1.5 flex gap-1.5 max-w-md">
         <button
           onClick={() => setActiveSubTab('academico')}
-          className={`flex-1 cursor-pointer py-2 px-4 rounded-lg font-sans text-xs font-black uppercase tracking-wider text-center transition-all ${
-            activeSubTab === 'academico'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'text-slate-600 hover:bg-slate-100'
-          }`}
+          className={`flex-1 cursor-pointer py-2 px-4 rounded-lg font-sans text-xs font-black uppercase tracking-wider text-center transition-all ${activeSubTab === 'academico'
+            ? 'bg-blue-600 text-white shadow-md'
+            : 'text-slate-600 hover:bg-slate-100'
+            }`}
         >
           Notas, Evaluaciones y Cursos
         </button>
         <button
           onClick={() => setActiveSubTab('pagos')}
-          className={`flex-1 cursor-pointer py-2 px-4 rounded-lg font-sans text-xs font-black uppercase tracking-wider text-center transition-all ${
-            activeSubTab === 'pagos'
-              ? 'bg-blue-600 text-white shadow-md'
-              : 'text-slate-600 hover:bg-slate-100'
-          }`}
+          className={`flex-1 cursor-pointer py-2 px-4 rounded-lg font-sans text-xs font-black uppercase tracking-wider text-center transition-all ${activeSubTab === 'pagos'
+            ? 'bg-blue-600 text-white shadow-md'
+            : 'text-slate-600 hover:bg-slate-100'
+            }`}
         >
           Formas de Pago y Registro (700 Bs.)
         </button>
@@ -223,7 +271,7 @@ export default function EstudiantePanel({
                   <span className="font-mono font-black text-slate-900">{examsTakenCount} / {totalExamsOfSystem}</span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border">
-                  <div 
+                  <div
                     className="bg-blue-600 h-full rounded-full transition-all duration-300"
                     style={{ width: `${(examsTakenCount / totalExamsOfSystem) * 100}%` }}
                   ></div>
@@ -243,7 +291,7 @@ export default function EstudiantePanel({
                   <p className="text-xs text-orange-800 leading-snug">
                     Ha completado la totalidad de evaluaciones de la FICCT.
                   </p>
-                  
+
                   {gpa >= 60 ? (
                     <div className="bg-emerald-600 text-white rounded-xl p-3 text-center border border-emerald-700 shadow-md">
                       <span className="text-[9px] font-mono tracking-widest uppercase block text-emerald-100 font-bold">Estado Definitivo:</span>
@@ -309,7 +357,7 @@ export default function EstudiantePanel({
                   <p className="text-xs text-slate-500 font-sans">
                     Usted se encuentra cursando de manera oficial las siguientes materias preuniversitarias:
                   </p>
-                  
+
                   {myEnrolledGroups.map(g => {
                     const matchedMateria = materias.find(m => m.id === g.materia_id);
                     const docName = getTeacherForGroup(g.docente_id);
@@ -413,9 +461,8 @@ export default function EstudiantePanel({
                           <BookOpen className="w-4 h-4 text-slate-500" />
                           <span className="font-sans font-black text-slate-850 text-xs uppercase tracking-wide">{m.nombre}</span>
                         </div>
-                        <span className={`text-[9.5px] font-mono font-black tracking-wider px-2 py-0.5 rounded-xl border ${
-                          matterAvg >= 60 ? 'bg-emerald-50 text-emerald-800 border-emerald-150' : 'bg-slate-100 text-slate-550 border-slate-200'
-                        }`}>
+                        <span className={`text-[9.5px] font-mono font-black tracking-wider px-2 py-0.5 rounded-xl border ${matterAvg >= 60 ? 'bg-emerald-50 text-emerald-800 border-emerald-150' : 'bg-slate-100 text-slate-550 border-slate-200'
+                          }`}>
                           PROM: {matterAvg.toFixed(1)}
                         </span>
                       </div>
@@ -519,7 +566,7 @@ export default function EstudiantePanel({
       ) : (
         /* PAYMENT TAB DETAIL (700 Bs payment methods + submission forms) */
         <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-md p-6 space-y-6">
-          
+
           <div className="border-b pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h3 className="font-sans font-black text-slate-900 text-lg uppercase tracking-tight">Formas de Pago y Verificación de Depósito (FICCT)</h3>
@@ -527,7 +574,7 @@ export default function EstudiantePanel({
                 Cumplir con el arancel reglamentario de <strong>700.00 Bs.</strong> es obligatorio para figurar con estado "Inscrito" y habilitar sus materias.
               </p>
             </div>
-            
+
             <div className="flex items-center gap-3">
               {isPaid ? (
                 <div className="bg-emerald-50 border-2 border-emerald-200 rounded-xl px-4 py-2 text-emerald-800 flex items-center gap-2">
@@ -558,13 +605,13 @@ export default function EstudiantePanel({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
+
             {/* Payment methods list - Col 1 to 7 */}
             <div className="lg:col-span-7 space-y-6">
               <span className="text-[11.5px] font-black uppercase text-slate-400 tracking-wider block">Canales y Formas de Pago</span>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                
+
                 {/* Bank Transfer details */}
                 <div className="bg-slate-50 border rounded-2xl p-4.5 space-y-2.5 relative">
                   <div className="flex items-center gap-2">
@@ -608,7 +655,7 @@ export default function EstudiantePanel({
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-slate-800 mb-0.5 font-sans">Pago Sencillo CUP 700Bs</p>
-                      <button 
+                      <button
                         onClick={() => {
                           if (triggerAlert) {
                             triggerAlert('Se ha iniciado la descarga del código QR oficial para el depósito de habilitación académica UAGRM (700.00 Bs).', 'Descarga de Recurso');
@@ -642,7 +689,7 @@ export default function EstudiantePanel({
             {/* Submission Form / verification request status - Col 8 to 12 */}
             <div className="lg:col-span-5 space-y-6">
               <span className="text-[11.5px] font-black uppercase text-slate-400 tracking-wider block">Verificación de Pago</span>
-              
+
               {isPaid ? (
                 <div className="bg-emerald-50 border border-emerald-250 p-6 rounded-2xl space-y-4">
                   <div className="flex gap-2 text-emerald-800">
@@ -660,7 +707,7 @@ export default function EstudiantePanel({
                     <p className="flex justify-between"><span className="text-slate-400 font-bold">Fecha de Liquidación:</span> <strong className="font-sans text-slate-900 font-bold">{new Date(currentPay?.fecha_pago || '').toLocaleDateString('es-ES')}</strong></p>
                   </div>
 
-                  <button 
+                  <button
                     onClick={() => {
                       if (triggerAlert) {
                         triggerAlert(`Generando boleta fiscal e imprimiendo el comprobante oficial de arancel de matrícula para el postulante: \n\n${user.nombre_completo.toUpperCase()}`, 'Impresión de Comprobante');
@@ -706,11 +753,11 @@ export default function EstudiantePanel({
                   </div>
 
                   <form onSubmit={handlePaySubmit} className="space-y-3.5 text-xs">
-                    
+
                     <div className="space-y-1.5">
                       <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wide">Banco Regulador:</label>
-                      <select 
-                        value={selectedBank} 
+                      <select
+                        value={selectedBank}
                         onChange={(e) => setSelectedBank(e.target.value)}
                         className="w-full bg-white border rounded-xl p-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-sans text-slate-905"
                       >
@@ -735,12 +782,12 @@ export default function EstudiantePanel({
 
                     <div className="space-y-1.5 pt-1">
                       <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wide">Adjuntar Comprobante Bancario (Digital / Foto):</label>
-                      
+
                       <div className="border-2 border-dashed border-slate-200.rounded p-4 rounded-xl bg-white text-center hover:bg-slate-100/50 transition-all cursor-pointer relative">
-                        <input 
-                          type="file" 
-                          id="file-pago-upload" 
-                          className="absolute inset-0 opacity-0 cursor-pointer" 
+                        <input
+                          type="file"
+                          id="file-pago-upload"
+                          className="absolute inset-0 opacity-0 cursor-pointer"
                           onChange={() => setSimulatedFileUploaded(true)}
                         />
                         <div className="flex flex-col items-center justify-center gap-1.5">
@@ -778,6 +825,90 @@ export default function EstudiantePanel({
         </div>
       )}
 
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      <div className="bg-white border-4 border-slate-900 rounded-2xl max-w-md w-full shadow-2xl p-6 space-y-4 relative overflow-hidden text-left text-slate-900">
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-blue-605"></div>
+
+        <div className="flex justify-between items-start">
+          <h3 className="font-sans font-black text-xs uppercase tracking-widest text-slate-500">
+            Cambiar Contraseña
+          </h3>
+          <button
+            type="button"
+            onClick={() => {
+              setShowPasswordModal(false);
+              setOldPassword('');
+              setNewPassword('');
+              setConfirmPassword('');
+              setPasswordError('');
+            }}
+            className="text-slate-400 hover:text-slate-650 text-xs font-bold font-sans cursor-pointer focus:outline-none"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p className="text-[11px] text-slate-500 leading-relaxed font-sans">
+          Ingrese su contraseña actual/antigua y defina su nueva clave de acceso al portal.
+        </p>
+
+        {passwordError && (
+          <div className="bg-rose-50 border border-rose-250 p-3 rounded-xl text-xs text-rose-700 font-sans flex items-center gap-2.5">
+            <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
+            <span className="font-sans font-bold leading-normal">{passwordError}</span>
+          </div>
+        )}
+
+        <form onSubmit={handlePasswordChangeSubmit} className="space-y-3.5 text-xs">
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wide">Contraseña Antigua / Actual:</label>
+            <input
+              type="password"
+              required
+              placeholder="••••••••"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              className="w-full bg-white border rounded-xl p-2.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wide">Nueva Contraseña:</label>
+            <input
+              type="password"
+              required
+              placeholder="••••••••"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full bg-white border rounded-xl p-2.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wide">Confirmar Nueva Contraseña:</label>
+            <input
+              type="password"
+              required
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full bg-white border rounded-xl p-2.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full cursor-pointer bg-blue-600 hover:bg-blue-700 text-white text-xs font-sans font-black uppercase tracking-wider py-3 px-4 rounded-xl transition-all border border-blue-500 shadow mt-2"
+          >
+            Actualizar Contraseña
+          </button>
+        </form>
+      </div>
     </div>
+  )
+}
+
+    </div >
   );
 }

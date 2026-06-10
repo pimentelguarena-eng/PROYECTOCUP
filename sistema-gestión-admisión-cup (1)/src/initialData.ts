@@ -2,9 +2,9 @@ import { Carrera, Materia, Usuario, EstudianteDetalle, DocenteDetalle, Pago, Gru
 
 export const CARRERAS_INICIALES: Carrera[] = [
   { id: 1, nombre: 'Ingeniería Informática', cupo_maximo: 5 },
-  { id: 2, nombre: 'Ingeniería de Sistemas', cupo_maximo: 4 },
-  { id: 3, nombre: 'Ingeniería en Redes y Telecomunicaciones', cupo_maximo: 6 },
-  { id: 4, nombre: 'Ingeniería en Ciencias de la Computación', cupo_maximo: 3 },
+  { id: 2, nombre: 'Ingeniería en Sistemas', cupo_maximo: 4 },
+  { id: 3, nombre: 'Ingeniería Redes y Telecomunicaciones', cupo_maximo: 6 },
+  { id: 4, nombre: 'Robótica', cupo_maximo: 3 },
 ];
 
 export const MATERIAS_INICIALES: Materia[] = [

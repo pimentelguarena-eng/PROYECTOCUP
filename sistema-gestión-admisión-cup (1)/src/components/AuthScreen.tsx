@@ -17,7 +17,9 @@ import {
   Upload,
   ArrowRight,
   HelpCircle,
-  FileText
+  FileText,
+  Printer,
+  CheckCircle
 } from 'lucide-react';
 
 interface AuthScreenProps {
@@ -113,6 +115,17 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
   const [paymentMethod, setPaymentMethod] = useState<'qr' | 'card' | 'transfer'>('qr');
   const [pendingUser, setPendingUser] = useState<Usuario | null>(null);
   const [pendingDetails, setPendingDetails] = useState<any>(null);
+  const [registeredCredentials, setRegisteredCredentials] = useState<{
+    username: string;
+    pass: string;
+    fullName: string;
+    ci: string;
+    career: string;
+    paymentRef: string;
+    paymentMethod: string;
+    date: string;
+    status: string;
+  } | null>(null);
 
   // Interactive Card fields
   const [cardNumber, setCardNumber] = useState('');
@@ -342,9 +355,117 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
 
         {/* Outer Login card */}
         <div className="bg-slate-900/90 backdrop-blur-md rounded-3xl border-2 border-slate-800 shadow-2xl overflow-hidden">
-          
-          {/* Tab selector */}
-          <div className="grid grid-cols-2 border-b-2 border-slate-800 font-sans text-xs">
+          {registeredCredentials ? (
+            <div id="printable-receipt" className="space-y-6 text-white bg-slate-900 p-6 md:p-8 shrink-0">
+              <div className="text-center space-y-2 border-b-2 border-slate-850 pb-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white text-xl mx-auto shadow-lg">
+                  <GraduationCap className="w-7 h-7" />
+                </div>
+                <h2 className="text-lg font-black tracking-tight uppercase text-white">FICHA DE INSCRIPCIÓN Y BOLETA DE PAGO</h2>
+                <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">
+                  CURSO DE ADMISIÓN Y PREPARACIÓN (CUP) - UAGRM
+                </p>
+              </div>
+
+              <div className="bg-emerald-500/10 border-2 border-emerald-500/20 rounded-xl p-4 text-center space-y-1">
+                <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto animate-pulse" />
+                <h3 className="text-sm font-black text-emerald-400 uppercase">¡PAGO REGISTRADO EXITOSAMENTE!</h3>
+                <p className="text-xs text-slate-350">Su arancel ha sido validado. Sus credenciales de acceso ya están habilitadas.</p>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-[10px] uppercase font-black text-slate-450 tracking-widest border-b border-slate-800 pb-1">Credenciales de Acceso Asignadas</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-950 p-4 rounded-xl border border-slate-850 font-mono text-sm">
+                  <div>
+                    <span className="text-[9px] text-slate-500 uppercase font-bold block">Usuario (Código de Registro):</span>
+                    <strong className="text-blue-400 font-black text-base">{registeredCredentials.username}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-500 uppercase font-bold block">Contraseña (C.I.):</span>
+                    <strong className="text-emerald-400 font-black text-base">{registeredCredentials.pass}</strong>
+                  </div>
+                </div>
+                <p className="text-[9.5px] text-slate-500 italic">* Utilice estas credenciales en la pestaña "Ingresar al Portal" para iniciar sesión en el sistema.</p>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-[10px] uppercase font-black text-slate-450 tracking-widest border-b border-slate-800 pb-1">Detalle del Postulante</h4>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[9px] text-slate-500 uppercase font-bold block">Nombre Completo:</span>
+                    <span className="font-bold">{registeredCredentials.fullName}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-500 uppercase font-bold block">Cédula de Identidad:</span>
+                    <span className="font-bold">{registeredCredentials.ci}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-500 uppercase font-bold block">Carrera Elegida:</span>
+                    <span className="font-bold text-blue-400">{registeredCredentials.career}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-500 uppercase font-bold block">Fecha de Emisión:</span>
+                    <span className="font-bold">{registeredCredentials.date}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-[10px] uppercase font-black text-slate-450 tracking-widest border-b border-slate-800 pb-1">Detalle de Facturación y Pago</h4>
+                <div className="grid grid-cols-2 gap-3 text-xs bg-slate-950/40 p-3 rounded-xl border border-slate-850">
+                  <div>
+                    <span className="text-[9px] text-slate-500 uppercase font-bold block">Monto Cancelado:</span>
+                    <strong className="text-emerald-400 font-black">700.00 Bs.</strong>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-500 uppercase font-bold block">Método de Pago:</span>
+                    <span className="font-bold">{registeredCredentials.paymentMethod}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-500 uppercase font-bold block">Referencia / Factura:</span>
+                    <span className="font-mono font-bold text-slate-300">{registeredCredentials.paymentRef}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] text-slate-500 uppercase font-bold block">Estado de Matrícula:</span>
+                    <span className={`font-bold uppercase ${registeredCredentials.status === 'Pagado' ? 'text-emerald-400' : 'text-amber-500'}`}>
+                      {registeredCredentials.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col md:flex-row gap-3 pt-4 border-t-2 border-slate-850 print:hidden">
+                <div className="flex-1 flex flex-col gap-1">
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="w-full bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white text-xs font-black uppercase tracking-wider py-3 px-4 rounded-xl transition-all border border-blue-400 shadow-md flex items-center justify-center gap-2 cursor-pointer font-sans"
+                  >
+                    <Printer className="w-5 h-5 text-white" />
+                    Imprimir / Guardar PDF
+                  </button>
+                  <span className="text-[8.5px] text-slate-500 text-center font-sans">
+                    * Seleccione "Guardar como PDF" en el destino de impresión.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginEmail(registeredCredentials.username);
+                    setRegisteredCredentials(null);
+                    setActiveTab('login');
+                  }}
+                  className="flex-1 bg-slate-850 hover:bg-slate-800 active:scale-[0.99] text-slate-200 hover:text-white text-xs font-black uppercase tracking-wider py-3 px-4 rounded-xl transition-all border border-slate-800 flex items-center justify-center gap-2 cursor-pointer font-sans"
+                >
+                  <LogIn className="w-5 h-5 text-slate-400" />
+                  Iniciar Sesión en el Portal
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Tab selector */}
+              <div className="grid grid-cols-2 border-b-2 border-slate-800 font-sans text-xs">
             <button
               onClick={() => setActiveTab('login')}
               className={`py-4 font-black transition-all uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer ${
@@ -578,6 +699,7 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
                     <button
                       type="button"
                       onClick={() => {
+                        if (!pendingUser) return;
                         // Confirm instant payment
                         const finalDetails = {
                           ...pendingDetails,
@@ -590,10 +712,19 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
                           }
                         };
                         onRegister(pendingUser, finalDetails);
-                        showAlert(
-                          `¡PAGO AUTOMÁTICO QR CONFIRMADO EXITOSAMENTE!\n\nSu arancel de 700.00 Bs. ha sido debitado y validado en tiempo real.\n\nCódigo de Registro: ${pendingUser.codigo_registro}\nEstado: Inscrito Habilitante`, 
-                          '¡Acceso Habilitado de Inmediato!'
-                        );
+                        
+                        const careerName = carreras.find(c => c.id === Number(regCarrera1))?.nombre || 'Ingeniería';
+                        setRegisteredCredentials({
+                          username: pendingUser.codigo_registro,
+                          pass: pendingUser.ci,
+                          fullName: pendingUser.nombre_completo,
+                          ci: pendingUser.ci,
+                          career: careerName,
+                          paymentRef: finalDetails.initialPayment.nro_factura,
+                          paymentMethod: 'Código QR Simple',
+                          date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
+                          status: 'Pagado'
+                        });
                       }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-500/20 active:scale-[0.99] text-white text-xs font-black uppercase tracking-wider py-3 px-4 rounded-xl transition-all border border-emerald-400 shadow-md flex items-center justify-center gap-2 cursor-pointer"
                     >
@@ -718,6 +849,7 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
                           showAlert('Por favor complete todos campos válidos de la tarjeta bancaria de débito o crédito.', 'Validación Fallida');
                           return;
                         }
+                        if (!pendingUser) return;
                         
                         // Confirm card cleared
                         const finalDetails = {
@@ -731,10 +863,19 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
                           }
                         };
                         onRegister(pendingUser, finalDetails);
-                        showAlert(
-                          `¡TRANSACCIÓN MULTIBANCO EN LÍNEA APROBADA!\n\nSe debitaron los 700.00 Bs. para inscripción del postulante.\n\nCódigo de Ingreso: ${pendingUser.codigo_registro}`, 
-                          '¡Registro de Pago Exitoso!'
-                        );
+                        
+                        const careerName = carreras.find(c => c.id === Number(regCarrera1))?.nombre || 'Ingeniería';
+                        setRegisteredCredentials({
+                          username: pendingUser.codigo_registro,
+                          pass: pendingUser.ci,
+                          fullName: pendingUser.nombre_completo,
+                          ci: pendingUser.ci,
+                          career: careerName,
+                          paymentRef: finalDetails.initialPayment.nro_factura,
+                          paymentMethod: 'Tarjeta de Crédito/Débito',
+                          date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
+                          status: 'Pagado'
+                        });
                       }}
                       className="w-full bg-blue-600 hover:bg-blue-500 hover:shadow-blue-500/20 active:scale-[0.99] text-white text-xs font-black uppercase tracking-wider py-3.5 px-4 rounded-xl transition-all border border-blue-400 shadow-md flex items-center justify-center gap-2 cursor-pointer"
                     >
@@ -866,19 +1007,21 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
                           }
                         };
                         
+                        if (!pendingUser) return;
                         onRegister(pendingUser, finalDetails);
                         
-                        if (autoApproveTransfer) {
-                          showAlert(
-                            `¡DEPÓSITO BANCARIO REGISTRADO Y AUTO-APROBADO!\n\nProceda directo con sus asignaciones de materias.\n\nFicha de Registro CUP: ${pendingUser.codigo_registro}`,
-                            '¡Ingreso Exitoso en Portal!'
-                          );
-                        } else {
-                          showAlert(
-                            `¡COMPROBANTE ENVIADO CORRECTAMENTE!\n\nSu matrícula fue registrada con número de transacción: ${transferRef.trim()}.\n\nSe mantendrá temporalmente inactivo su estatus de examen CUP como "Pendiente" hasta que el Administrador valide el extracto oficial. Guarde su código: ${pendingUser.codigo_registro}`,
-                            '¡Boleta de Depósito en Revisión!'
-                          );
-                        }
+                        const careerName = carreras.find(c => c.id === Number(regCarrera1))?.nombre || 'Ingeniería';
+                        setRegisteredCredentials({
+                          username: pendingUser.codigo_registro,
+                          pass: pendingUser.ci,
+                          fullName: pendingUser.nombre_completo,
+                          ci: pendingUser.ci,
+                          career: careerName,
+                          paymentRef: finalDetails.initialPayment.nro_factura,
+                          paymentMethod: `Depósito Bancario / Transferencia (${transferBank})`,
+                          date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
+                          status: autoApproveTransfer ? 'Pagado' : 'Pendiente de Validación'
+                        });
                       }}
                       className="w-full bg-amber-600 hover:bg-amber-500 hover:shadow-amber-500/20 active:scale-[0.99] text-white text-xs font-black uppercase tracking-wider py-3.5 px-4 rounded-xl transition-all border border-amber-400 shadow-md flex items-center justify-center gap-2 cursor-pointer font-sans"
                     >
@@ -1096,6 +1239,8 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
               </form>
             )}
           </div>
+            </>
+          )}
         </div>
 
         {/* Quick Access panel has been removed */}

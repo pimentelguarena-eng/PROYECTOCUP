@@ -273,6 +273,32 @@ export default function App() {
     triggerAlert('Título de Bachiller cargado y validado en el del sistema CUP.', 'Requisito de Admisión');
   };
 
+  // Business Action: Student updates password
+  const handleStudentUpdatePassword = (newPass: string) => {
+    setDb(prev => {
+      const updatedUsers = prev.usuarios.map(u => {
+        if (u.id === activeUser.id) {
+          return {
+            ...u,
+            password: newPass
+          };
+        }
+        return u;
+      });
+
+      const updatedState = { ...prev, usuarios: updatedUsers };
+      setSessionUser(prevUser => prevUser ? { ...prevUser, password: newPass } : null);
+
+      return logAction(
+        updatedState,
+        activeUser.id,
+        activeUser.nombre_completo,
+        `El postulante ${activeUser.nombre_completo} cambió su contraseña de acceso.`,
+        'MÓDULO SEGURIDAD'
+      );
+    });
+  };
+
   // CRUD: Admin registers a student
   const handleAddStudent = (newUser: Usuario, newDetail: EstudianteDetalle) => {
     setDb(prev => {
@@ -662,6 +688,7 @@ export default function App() {
               grupos={db.grupos}
               onUploadVoucher={handleStudentUploadVoucher}
               onUpdateDocs={handleStudentUploadDocs}
+              onUpdatePassword={handleStudentUpdatePassword}
               admissionResult={admissionResults.find(a => a.estudiante_id === activeUser.id)}
               triggerAlert={triggerAlert}
               triggerConfirm={triggerConfirm}
