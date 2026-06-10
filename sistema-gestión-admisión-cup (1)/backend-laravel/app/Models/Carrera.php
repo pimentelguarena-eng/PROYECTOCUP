@@ -10,7 +10,12 @@ class Carrera extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'nombre'
+        'nombre',
+        'cupo_maximo'
+    ];
+
+    protected $casts = [
+        'cupo_maximo' => 'integer'
     ];
 
     public function estudiantesOpcion1()

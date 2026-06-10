@@ -67,6 +67,7 @@ return new class extends Migration
         Schema::create('carreras', function (Blueprint $table) {
             $table->id(); // SERIAL PRIMARY KEY
             $table->string('nombre', 100)->unique();
+            $table->integer('cupo_maximo')->default(5);
         });
 
         // Tabla de Estudiantes (Especialización de Usuarios)

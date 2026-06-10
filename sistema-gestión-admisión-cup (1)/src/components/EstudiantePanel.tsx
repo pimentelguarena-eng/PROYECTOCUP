@@ -36,6 +36,7 @@ interface EstudiantePanelProps {
   onUpdateDocs: () => void;
   onUpdatePassword: (newPass: string) => void;
   admissionResult: any; // Final outcome with Career allocations
+  notaMinimaAprobacion: number;
   triggerAlert?: (message: string, title?: string) => void;
   triggerConfirm?: (message: string, onConfirm: () => void, title?: string) => void;
 }
@@ -54,6 +55,7 @@ export default function EstudiantePanel({
   onUpdateDocs,
   onUpdatePassword,
   admissionResult,
+  notaMinimaAprobacion,
   triggerAlert
 }: EstudiantePanelProps) {
   const [voucherRef, setVoucherRef] = useState('');
@@ -219,12 +221,12 @@ export default function EstudiantePanel({
           <div className="space-y-1">
             <span className="text-[9px] text-blue-405 font-black uppercase tracking-wider">Promedio Parcial (CUP)</span>
             <p className="font-mono text-3xl font-black">{gpa.toFixed(1)} <span className="text-xs text-slate-400">/ 100</span></p>
-            <p className="text-[10px] text-slate-400 leading-none">Min. Aprobación: 60 puntos.</p>
+            <p className="text-[10px] text-slate-400 leading-none">Min. Aprobación: {notaMinimaAprobacion} puntos.</p>
           </div>
           <div className="text-right">
-            <span className={`text-[9px] px-2.5 py-1 rounded-lg font-black tracking-wider block ${gpa >= 60 ? 'bg-emerald-550/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-550/20 text-rose-400 border border-rose-500/30'
+            <span className={`text-[9px] px-2.5 py-1 rounded-lg font-black tracking-wider block ${gpa >= notaMinimaAprobacion ? 'bg-emerald-550/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-550/20 text-rose-400 border border-rose-500/30'
               }`}>
-              {gpa >= 60 ? 'PROMEDIO APROBATORIO' : 'REPROBANDO'}
+              {gpa >= notaMinimaAprobacion ? 'PROMEDIO APROBATORIO' : 'REPROBANDO'}
             </span>
           </div>
         </div>
@@ -293,7 +295,7 @@ export default function EstudiantePanel({
                     Ha completado la totalidad de evaluaciones de la FICCT.
                   </p>
 
-                  {gpa >= 60 ? (
+                  {gpa >= notaMinimaAprobacion ? (
                     <div className="bg-emerald-600 text-white rounded-xl p-3 text-center border border-emerald-700 shadow-md">
                       <span className="text-[9px] font-mono tracking-widest uppercase block text-emerald-100 font-bold">Estado Definitivo:</span>
                       <p className="text-sm font-black font-sans tracking-wide">¡APROBADO PARA ADMISIÓN! 🎉</p>
@@ -307,7 +309,7 @@ export default function EstudiantePanel({
                       <span className="text-[9px] font-mono tracking-widest uppercase block text-rose-150 font-bold">Estado Definitivo:</span>
                       <p className="text-sm font-black font-sans tracking-wide">REPROBADO ⚠️</p>
                       <p className="text-[10px] mt-1 text-rose-100 font-medium leading-tight">
-                        El promedio obtenido ({gpa.toFixed(1)}) es menor al puntaje mínimo de excelencia académica de la FICCT (60.0). No alcanza el cupo directo.
+                        El promedio obtenido ({gpa.toFixed(1)}) es menor al puntaje mínimo de excelencia académica de la FICCT ({notaMinimaAprobacion.toFixed(1)}). No alcanza el cupo directo.
                       </p>
                     </div>
                   )}
@@ -462,7 +464,7 @@ export default function EstudiantePanel({
                           <BookOpen className="w-4 h-4 text-slate-500" />
                           <span className="font-sans font-black text-slate-850 text-xs uppercase tracking-wide">{m.nombre}</span>
                         </div>
-                        <span className={`text-[9.5px] font-mono font-black tracking-wider px-2 py-0.5 rounded-xl border ${matterAvg >= 60 ? 'bg-emerald-50 text-emerald-800 border-emerald-150' : 'bg-slate-100 text-slate-550 border-slate-200'
+                        <span className={`text-[9.5px] font-mono font-black tracking-wider px-2 py-0.5 rounded-xl border ${matterAvg >= notaMinimaAprobacion ? 'bg-emerald-550/20 text-emerald-600 border-emerald-500/30' : 'bg-slate-100 text-slate-550 border-slate-200'
                           }`}>
                           PROM: {matterAvg.toFixed(1)}
                         </span>
@@ -520,13 +522,13 @@ export default function EstudiantePanel({
                       <div className="space-y-1 pt-1">
                         <div className="w-full bg-white rounded-full h-1.5 border overflow-hidden">
                           <div
-                            className={`h-1.5 rounded-full ${matterAvg >= 60 ? 'bg-emerald-500' : 'bg-slate-405'}`}
+                            className={`h-1.5 rounded-full ${matterAvg >= notaMinimaAprobacion ? 'bg-emerald-500' : 'bg-slate-405'}`}
                             style={{ width: `${Math.min(matterAvg, 100)}%` }}
                           ></div>
                         </div>
                         <div className="flex justify-between items-center text-[9px] font-bold text-slate-405">
                           <span>0 pts</span>
-                          <span>Área {matterAvg >= 60 ? 'Aprobada' : 'No alcanzada'}</span>
+                          <span>Área {matterAvg >= notaMinimaAprobacion ? 'Aprobada' : 'No alcanzada'}</span>
                           <span>100 pts</span>
                         </div>
                       </div>

@@ -47,6 +47,13 @@ export interface EstudianteDetalle {
   sexo: 'Femenino' | 'Masculino';
   titulo_bachiller: boolean;
   otros_documentos: string;
+  periodo_cup: string; // e.g. '2026/1'
+}
+
+export interface CupoCarrera {
+  carrera_id: number;
+  periodo: string;
+  cupos: number;
 }
 
 export interface DocenteDetalle {

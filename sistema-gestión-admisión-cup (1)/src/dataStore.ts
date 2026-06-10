@@ -1,4 +1,4 @@
-import { Carrera, Materia, Usuario, EstudianteDetalle, DocenteDetalle, Pago, Grupo, Asistencia, Nota, Bitacora, Rol, HistorialAprobado } from './types';
+import { Carrera, Materia, Usuario, EstudianteDetalle, DocenteDetalle, Pago, Grupo, Asistencia, Nota, Bitacora, Rol, HistorialAprobado, CupoCarrera } from './types';
 import {
   CARRERAS_INICIALES,
   MATERIAS_INICIALES,
@@ -24,7 +24,11 @@ const KEYS = {
   ASISTENCIAS: 'cup_attendances',
   BITACORAS: 'cup_logs',
   CARRERAS: 'cup_careers',
-  HISTORIAL_APROBADOS: 'cup_approved_history'
+  HISTORIAL_APROBADOS: 'cup_approved_history',
+  PERIODO_ACTIVO: 'cup_active_period',
+  PERIODOS: 'cup_periods',
+  CUPOS_CARRERAS: 'cup_careers_quotas',
+  NOTA_MINIMA: 'cup_min_grade'
 };
 
 export interface DatabaseState {
@@ -39,6 +43,10 @@ export interface DatabaseState {
   carreras: Carrera[];
   materias: Materia[];
   historialAprobados: HistorialAprobado[];
+  periodoActivo: string;
+  periodos: string[];
+  cuposCarreras: CupoCarrera[];
+  notaMinimaAprobacion: number;
 }
 
 export function loadDatabase(): DatabaseState {
@@ -70,6 +78,22 @@ export function loadDatabase(): DatabaseState {
     const carreras = localStorage.getItem(KEYS.CARRERAS) ? JSON.parse(localStorage.getItem(KEYS.CARRERAS)!) : CARRERAS_INICIALES;
     const historialAprobados = localStorage.getItem(KEYS.HISTORIAL_APROBADOS) ? JSON.parse(localStorage.getItem(KEYS.HISTORIAL_APROBADOS)!) : HISTORIAL_APROBADOS_INICIALES;
 
+    const periodoActivo = localStorage.getItem(KEYS.PERIODO_ACTIVO) || '2026/1';
+    const periodos = localStorage.getItem(KEYS.PERIODOS) ? JSON.parse(localStorage.getItem(KEYS.PERIODOS)!) : ['2026/1', '2026/2'];
+    const notaMinimaAprobacion = localStorage.getItem(KEYS.NOTA_MINIMA) ? Number(localStorage.getItem(KEYS.NOTA_MINIMA)!) : 60;
+
+    const defaultCuposCarreras: CupoCarrera[] = [];
+    ['2026/1', '2026/2'].forEach(p => {
+      CARRERAS_INICIALES.forEach(c => {
+        defaultCuposCarreras.push({
+          carrera_id: c.id,
+          periodo: p,
+          cupos: c.cupo_maximo
+        });
+      });
+    });
+    const cuposCarreras = localStorage.getItem(KEYS.CUPOS_CARRERAS) ? JSON.parse(localStorage.getItem(KEYS.CUPOS_CARRERAS)!) : defaultCuposCarreras;
+
     return {
       usuarios,
       estudiantes,
@@ -81,10 +105,25 @@ export function loadDatabase(): DatabaseState {
       bitacoras,
       carreras,
       materias: MATERIAS_INICIALES,
-      historialAprobados
+      historialAprobados,
+      periodoActivo,
+      periodos,
+      cuposCarreras,
+      notaMinimaAprobacion
     };
   } catch (error) {
     console.error('Error loading database, resetting to defaults:', error);
+    const defaultCuposCarreras: CupoCarrera[] = [];
+    ['2026/1', '2026/2'].forEach(p => {
+      CARRERAS_INICIALES.forEach(c => {
+        defaultCuposCarreras.push({
+          carrera_id: c.id,
+          periodo: p,
+          cupos: c.cupo_maximo
+        });
+      });
+    });
+
     return {
       usuarios: USUARIOS_INICIALES,
       estudiantes: ESTUDIANTES_INICIALES,
@@ -96,7 +135,11 @@ export function loadDatabase(): DatabaseState {
       bitacoras: BITACORAS_INICIALES,
       carreras: CARRERAS_INICIALES,
       materias: MATERIAS_INICIALES,
-      historialAprobados: HISTORIAL_APROBADOS_INICIALES
+      historialAprobados: HISTORIAL_APROBADOS_INICIALES,
+      periodoActivo: '2026/1',
+      periodos: ['2026/1', '2026/2'],
+      cuposCarreras: defaultCuposCarreras,
+      notaMinimaAprobacion: 60
     };
   }
 }
@@ -113,6 +156,10 @@ export function saveDatabase(state: DatabaseState) {
     localStorage.setItem(KEYS.BITACORAS, JSON.stringify(state.bitacoras));
     localStorage.setItem(KEYS.CARRERAS, JSON.stringify(state.carreras));
     localStorage.setItem(KEYS.HISTORIAL_APROBADOS, JSON.stringify(state.historialAprobados || []));
+    localStorage.setItem(KEYS.PERIODO_ACTIVO, state.periodoActivo);
+    localStorage.setItem(KEYS.PERIODOS, JSON.stringify(state.periodos));
+    localStorage.setItem(KEYS.CUPOS_CARRERAS, JSON.stringify(state.cuposCarreras));
+    localStorage.setItem(KEYS.NOTA_MINIMA, state.notaMinimaAprobacion.toString());
   } catch (error) {
     console.error('Error saving database state:', error);
   }
@@ -151,7 +198,8 @@ export interface AdmissionAssignmentResult {
 }
 
 export function processCareerAdmissions(state: DatabaseState): AdmissionAssignmentResult[] {
-  const { usuarios, estudiantes, notas, carreras, pagos } = state;
+  const { usuarios, estudiantes, notas, carreras, pagos, notaMinimaAprobacion } = state;
+  const minGrade = notaMinimaAprobacion ?? 60;
   
   // Get all registered students
   return estudiantes.map(st => {
@@ -181,12 +229,12 @@ export function processCareerAdmissions(state: DatabaseState): AdmissionAssignme
       estado_definitivo = 'Postulante';
       observaciones = 'Requisito obligatorio faltante: Título de Bachiller.';
     } else {
-      // Checked if GPA >= 60
-      if (gpa >= 60) {
+      // Checked if GPA >= minGrade
+      if (gpa >= minGrade) {
         estado_definitivo = 'Aprobado';
       } else {
         estado_definitivo = 'Reprobado';
-        observaciones = `Promedio de ${gpa.toFixed(1)} es menor al mínimo de 60 puntos.`;
+        observaciones = `Promedio de ${gpa.toFixed(1)} es menor al mínimo de ${minGrade} puntos.`;
       }
     }
 
@@ -210,64 +258,90 @@ export function processCareerAdmissions(state: DatabaseState): AdmissionAssignme
  */
 export function getEnforcedAdmissions(state: DatabaseState): AdmissionAssignmentResult[] {
   const baseAdmissions = processCareerAdmissions(state);
-  const { carreras } = state;
+  const { carreras, cuposCarreras } = state;
   
-  // Create quota trackers
-  const quotaCounts: Record<number, number> = {};
-  carreras.forEach(c => {
-    quotaCounts[c.id] = 0;
+  // Create quota trackers per period per career: Record<string, Record<number, number>>
+  const quotaCounts: Record<string, Record<number, number>> = {};
+  
+  // Get all unique periods in the students list
+  const studentPeriods = Array.from(new Set(state.estudiantes.map(e => e.periodo_cup || '2026/1')));
+  
+  const allResults: AdmissionAssignmentResult[] = [];
+  
+  studentPeriods.forEach(pId => {
+    quotaCounts[pId] = {};
+    carreras.forEach(c => {
+      quotaCounts[pId][c.id] = 0;
+    });
+    
+    // Get students for this period
+    const periodAdmissions = baseAdmissions.filter(adm => {
+      const est = state.estudiantes.find(e => e.usuario_id === adm.estudiante_id);
+      return (est?.periodo_cup || '2026/1') === pId;
+    });
+    
+    // Separate Approved vs others
+    const approvedStudents = periodAdmissions.filter(a => a.estado_definitivo === 'Aprobado');
+    const otherStudents = periodAdmissions.filter(a => a.estado_definitivo !== 'Aprobado');
+    
+    // Sort approved students by GPA descending (best scores get quota first!)
+    approvedStudents.sort((a, b) => b.gpa - a.gpa);
+    
+    const finalApproved = approvedStudents.map(student => {
+      const op1 = student.carrera_opcion_1_id;
+      const op2 = student.carrera_opcion_2_id;
+      const op1Career = carreras.find(c => c.id === op1);
+      const op2Career = carreras.find(c => c.id === op2);
+      
+      const getQuotaLimit = (careerId: number) => {
+        if (cuposCarreras) {
+          const config = cuposCarreras.find(cc => cc.carrera_id === careerId && cc.periodo === pId);
+          if (config) return config.cupos;
+        }
+        return op1Career?.cupo_maximo ?? 0;
+      };
+      
+      const op1Limit = getQuotaLimit(op1);
+      const op2Limit = op2Career ? getQuotaLimit(op2) : 0;
+      
+      let assignedId: number | null = null;
+      let assignedName = 'Ninguna';
+      let status = student.estado_definitivo;
+      let obs = '';
+      
+      // Try option 1
+      if (op1Career && quotaCounts[pId][op1] < op1Limit) {
+        assignedId = op1;
+        assignedName = op1Career.nombre;
+        quotaCounts[pId][op1]++;
+        obs = `Admitido en su 1ra opción (${op1Career.nombre}).`;
+      } 
+      // Try Option 2
+      else if (op2Career && quotaCounts[pId][op2] < op2Limit) {
+        assignedId = op2;
+        assignedName = op2Career.nombre;
+        quotaCounts[pId][op2]++;
+        obs = `1ra Opción saturada. Admitido en su 2da opción (${op2Career.nombre}) por regla de negocio de cupos.`;
+      } 
+      // Out of space in both
+      else {
+        status = 'Saturado (Sin Cupo)';
+        obs = `Aprobado academicamente (Nota ${student.gpa.toFixed(1)}), pero ambas opciones están sin vacantes disponibles para el período ${pId}.`;
+      }
+      
+      return {
+        ...student,
+        carrera_id_admitida: assignedId,
+        carrera_nombre_admitida: assignedName,
+        estado_definitivo: status,
+        observaciones: obs
+      };
+    });
+    
+    allResults.push(...finalApproved, ...otherStudents);
   });
-
-  // Separate Approved vs others
-  const approvedStudents = baseAdmissions.filter(a => a.estado_definitivo === 'Aprobado');
-  const otherStudents = baseAdmissions.filter(a => a.estado_definitivo !== 'Aprobado');
-
-  // Sort approved students by GPA descending (best scores get quota first!)
-  approvedStudents.sort((a, b) => b.gpa - a.gpa);
-
-  const finalApproved: AdmissionAssignmentResult[] = approvedStudents.map(student => {
-    const op1 = student.carrera_opcion_1_id;
-    const op2 = student.carrera_opcion_2_id;
-    const op1Career = carreras.find(c => c.id === op1);
-    const op2Career = carreras.find(c => c.id === op2);
-
-    let assignedId: number | null = null;
-    let assignedName = 'Ninguna';
-    let status = student.estado_definitivo;
-    let obs = '';
-
-    // Try option 1
-    if (op1Career && quotaCounts[op1] < op1Career.cupo_maximo) {
-      assignedId = op1;
-      assignedName = op1Career.nombre;
-      quotaCounts[op1]++;
-      obs = `Admitido en su 1ra opción (${op1Career.nombre}).`;
-    } 
-    // Try Option 2
-    else if (op2Career && quotaCounts[op2] < op2Career.cupo_maximo) {
-      assignedId = op2;
-      assignedName = op2Career.nombre;
-      quotaCounts[op2]++;
-      obs = `1ra Opción saturada. Admitido en su 2da opción (${op2Career.nombre}) por regla de negocio de cupos.`;
-    } 
-    // Out of space in both
-    else {
-      status = 'Saturado (Sin Cupo)';
-      obs = `Aprobado academicamente (Nota ${student.gpa.toFixed(1)}), pero ambas opciones están sin vacantes disponibles.`;
-    }
-
-    return {
-      ...student,
-      carrera_id_admitida: assignedId,
-      carrera_nombre_admitida: assignedName,
-      estado_definitivo: status,
-      observaciones: obs
-    };
-  });
-
-  // Combine and return in original/id order to prevent row jumping in tables
-  const combined = [...finalApproved, ...otherStudents];
-  return combined;
+  
+  return allResults;
 }
 
 // Function to add a bitacora log entry

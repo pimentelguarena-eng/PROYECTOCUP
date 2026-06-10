@@ -10,16 +10,19 @@ import {
   Materia,
   DocenteDetalle,
   Rol,
-  HistorialAprobado
+  HistorialAprobado,
+  CupoCarrera
 } from '../types';
-import {
-  Plus,
+import { LaravelApiClient } from '../lib/laravelApi';
+import { 
+  Users, 
   Search,
+  Plus,
+  Filter,
   Check,
   X,
   CreditCard,
   Building,
-  Users,
   Award,
   AlertTriangle,
   ChevronRight,
@@ -29,7 +32,11 @@ import {
   Edit2,
   FileCheck,
   UploadCloud,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Settings,
+  Calendar,
+  Layers,
+  GraduationCap
 } from 'lucide-react';
 import { getEnforcedAdmissions, calculateStudentGPA } from '../dataStore';
 
@@ -44,12 +51,19 @@ interface AdminPanelProps {
   carreras: Carrera[];
   materias: Materia[];
   historialAprobados: HistorialAprobado[];
+  periodoActivo: string;
+  periodos: string[];
+  cuposCarreras: CupoCarrera[];
+  notaMinimaAprobacion: number;
+  onUpdateAdminSettings: (settings: { periodoActivo?: string; periodos?: string[]; cuposCarreras?: CupoCarrera[]; notaMinimaAprobacion?: number }) => void;
+  onUpdateEstudiantesEstado: (updated: EstudianteDetalle[]) => void;
   onUpdateHistorialAprobados: (updated: HistorialAprobado[]) => void;
   onAddStudent: (user: Usuario, detail: EstudianteDetalle) => void;
   onEditStudent: (studentId: string, updatedUser: Partial<Usuario>, updatedDetail: Partial<EstudianteDetalle>) => void;
   onDeleteStudent: (studentId: string) => void;
   onApprovePayment: (pagoId: string) => void;
   onResetDatabase: () => void;
+  onResetQuotaSettings?: () => void;
   onLogAction: (action: string, module: string) => void;
   onBatchImport: (newStudents: Array<{ user: Usuario; detail: EstudianteDetalle; payment: Pago }>) => void;
   triggerAlert?: (message: string, title?: string) => void;
@@ -67,6 +81,12 @@ export default function AdminPanel({
   carreras,
   materias,
   historialAprobados = [],
+  periodoActivo,
+  periodos,
+  cuposCarreras,
+  notaMinimaAprobacion,
+  onUpdateAdminSettings,
+  onUpdateEstudiantesEstado,
   onUpdateHistorialAprobados,
   onAddStudent,
   onEditStudent,
@@ -79,10 +99,24 @@ export default function AdminPanel({
   triggerConfirm
 }: AdminPanelProps) {
   // Navigation active tab
-  const [activeSubTab, setActiveSubTab] = useState<'inscritos' | 'grupos' | 'pagos' | 'bitacora' | 'lote' | 'historial'>('inscritos');
+  const [activeSubTab, setActiveSubTab] = useState<'inscritos' | 'grupos' | 'pagos' | 'bitacora' | 'lote' | 'historial' | 'cupos'>('inscritos');
   const [searchQuery, setSearchQuery] = useState('');
   const [historyYear, setHistoryYear] = useState<string>('Todos');
   const [historyQuery, setHistoryQuery] = useState<string>('');
+
+  const [selectedPeriod, setSelectedPeriod] = useState(periodoActivo || '2026/1');
+  const [newPeriodInput, setNewPeriodInput] = useState('');
+  const [tempMinGrade, setTempMinGrade] = useState(notaMinimaAprobacion || 60);
+  const [localQuotas, setLocalQuotas] = useState<Record<number, number>>({});
+
+  React.useEffect(() => {
+    const periodQuotas: Record<number, number> = {};
+    carreras.forEach(c => {
+      const config = cuposCarreras.find(cc => cc.carrera_id === c.id && cc.periodo === selectedPeriod);
+      periodQuotas[c.id] = config ? config.cupos : c.cupo_maximo;
+    });
+    setLocalQuotas(periodQuotas);
+  }, [selectedPeriod, cuposCarreras, carreras]);
   
   // Create / Edit modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -108,7 +142,23 @@ export default function AdminPanel({
   const [validationError, setValidationError] = useState('');
 
   // Enforced career admission results
-  const stateSnapshot = { usuarios, estudiantes, pagos: payments, notas: grades, carreras, grupos, docentes, asistencias: [], bitacoras: [], materias, historialAprobados };
+  const stateSnapshot: any = { 
+    usuarios, 
+    estudiantes, 
+    pagos: payments, 
+    notas: grades, 
+    carreras, 
+    grupos, 
+    docentes, 
+    asistencias: [], 
+    bitacoras: [], 
+    materias, 
+    historialAprobados,
+    periodoActivo,
+    periodos,
+    cuposCarreras,
+    notaMinimaAprobacion
+  };
   const admissionResults = getEnforcedAdmissions(stateSnapshot);
 
   // Auto-calculated fields (as requested in page 4, page 6)
@@ -253,7 +303,8 @@ export default function AdminPanel({
         fecha_nacimiento: formFechaNac,
         sexo: formFormatedSexo(formSexo),
         titulo_bachiller: formTitulo,
-        otros_documentos: formOtros
+        otros_documentos: formOtros,
+        periodo_cup: periodoActivo
       };
 
       onAddStudent(u, d);
@@ -423,17 +474,17 @@ export default function AdminPanel({
     const batchSeed = [
       {
         user: { id: 'u-batch-1', codigo_registro: '226040501', ci: '9312111', nombre_completo: 'Rodrigo Lanza Saucedo', email: 'rodrigo.saucer@gmail.com', rol: Rol.Estudiante, estado: true, created_at: new Date().toISOString() },
-        detail: { usuario_id: 'u-batch-1', carrera_opcion_1: 1, carrera_opcion_2: 4, turno_preferido: 'Mañana' as const, nro_intentos: 1, estado_cup: 'Inscrito' as const, colegio_procedencia: 'U.E. Adventista', ciudad: 'Santa Cruz', celular: '73022144', direccion: 'Barrio Las Palmas', fecha_nacimiento: '2007-04-12', sexo: 'Masculino' as const, titulo_bachiller: true, otros_documentos: 'CI fotocopia' },
+        detail: { usuario_id: 'u-batch-1', carrera_opcion_1: 1, carrera_opcion_2: 4, turno_preferido: 'Mañana' as const, nro_intentos: 1, estado_cup: 'Inscrito' as const, colegio_procedencia: 'U.E. Adventista', ciudad: 'Santa Cruz', celular: '73022144', direccion: 'Barrio Las Palmas', fecha_nacimiento: '2007-04-12', sexo: 'Masculino' as const, titulo_bachiller: true, otros_documentos: 'CI fotocopia', periodo_cup: '2026/1' },
         payment: { id: 'p-b-1', estudiante_id: 'u-batch-1', monto: 700.00, nro_factura: 'F-2026-B01', estado_pago: 'Pagado' as const, fecha_pago: new Date().toISOString(), created_at: new Date().toISOString() }
       },
       {
         user: { id: 'u-batch-2', codigo_registro: '226040502', ci: '8124021', nombre_completo: 'Daniela Rivero Justiniano', email: 'daniela.jus@outlook.com', rol: Rol.Estudiante, estado: true, created_at: new Date().toISOString() },
-        detail: { usuario_id: 'u-batch-2', carrera_opcion_1: 2, carrera_opcion_2: 1, turno_preferido: 'Tarde' as const, nro_intentos: 1, estado_cup: 'Inscrito' as const, colegio_procedencia: 'Colegio Josefina', ciudad: 'Montero', celular: '74120330', direccion: 'Av. Circunvalación Nro. 50', fecha_nacimiento: '2008-01-20', sexo: 'Femenino' as const, titulo_bachiller: true, otros_documentos: 'CI fotocopia, Certificado de Nacimiento' },
+        detail: { usuario_id: 'u-batch-2', carrera_opcion_1: 2, carrera_opcion_2: 1, turno_preferido: 'Tarde' as const, nro_intentos: 1, estado_cup: 'Inscrito' as const, colegio_procedencia: 'Colegio Josefina', ciudad: 'Montero', celular: '74120330', direccion: 'Av. Circunvalación Nro. 50', fecha_nacimiento: '2008-01-20', sexo: 'Femenino' as const, titulo_bachiller: true, otros_documentos: 'CI fotocopia, Certificado de Nacimiento', periodo_cup: '2026/1' },
         payment: { id: 'p-b-2', estudiante_id: 'u-batch-2', monto: 700.00, nro_factura: 'F-2026-B02', estado_pago: 'Pagado' as const, fecha_pago: new Date().toISOString(), created_at: new Date().toISOString() }
       },
       {
         user: { id: 'u-batch-3', codigo_registro: '226040503', ci: '10921024', nombre_completo: 'Oscar Terrazas Aguilera', email: 'oscar.terra@gmail.com', rol: Rol.Estudiante, estado: true, created_at: new Date().toISOString() },
-        detail: { usuario_id: 'u-batch-3', carrera_opcion_1: 3, carrera_opcion_2: 2, turno_preferido: 'Noche' as const, nro_intentos: 1, estado_cup: 'Inscrito' as const, colegio_procedencia: 'U.E. Bolivia', ciudad: 'Naranjal', celular: '60124401', direccion: 'Comunidad Naranjal', fecha_nacimiento: '2007-09-05', sexo: 'Masculino' as const, titulo_bachiller: true, otros_documentos: 'Formulario de Inscripción' },
+        detail: { usuario_id: 'u-batch-3', carrera_opcion_1: 3, carrera_opcion_2: 2, turno_preferido: 'Noche' as const, nro_intentos: 1, estado_cup: 'Inscrito' as const, colegio_procedencia: 'U.E. Bolivia', ciudad: 'Naranjal', celular: '60124401', direccion: 'Comunidad Naranjal', fecha_nacimiento: '2007-09-05', sexo: 'Masculino' as const, titulo_bachiller: true, otros_documentos: 'Formulario de Inscripción', periodo_cup: '2026/1' },
         payment: { id: 'p-b-3', estudiante_id: 'u-batch-3', monto: 700.00, nro_factura: 'F-2026-B03', estado_pago: 'Pagado' as const, fecha_pago: new Date().toISOString(), created_at: new Date().toISOString() }
       }
     ];
@@ -600,6 +651,17 @@ export default function AdminPanel({
           }`}
         >
           Historial Aprobados ({(historialAprobados || []).length})
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('cupos')}
+          className={`cursor-pointer px-5 py-2.5 rounded-xl text-xs font-sans font-black transition-all uppercase tracking-wider shrink-0 ${
+            activeSubTab === 'cupos'
+              ? 'bg-slate-900 text-white shadow-md'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/85'
+          }`}
+        >
+          Gestión de Cupos & Admisión
         </button>
 
       </div>
@@ -1122,6 +1184,477 @@ export default function AdminPanel({
                 </tbody>
               </table>
             </div>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* 7. Gestión de Cupos and Periodos sub-tab */}
+      {activeSubTab === 'cupos' && (
+        <div id="cupos-management-tab" className="space-y-6">
+          
+          {/* Header Banner */}
+          <div className="bg-slate-950 text-white p-6 rounded-2xl border-2 border-slate-800 shadow-md relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative z-10">
+              <div className="space-y-1">
+                <span className="inline-block text-[9px] bg-blue-600 text-white px-2.5 py-0.5 rounded-full uppercase tracking-widest font-mono font-bold">
+                  FICCT - ADMINISTRACIÓN DE VACANTES
+                </span>
+                <h3 className="font-sans font-black text-xl tracking-tight uppercase">
+                  Parámetros de Cupos y Periodos Académicos
+                </h3>
+                <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
+                  Defina los cupos máximos por carrera para cada período, configure la nota mínima de aprobación y simule el estado de admisión de los postulantes por orden de mérito.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Column 1: Periodos & Nota Minima */}
+            <div className="space-y-6">
+              
+              {/* Periodos Card */}
+              <div className="bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-md space-y-4">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  <span className="text-xs font-black text-slate-800 uppercase tracking-wide">Periodos del CUP</span>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Periodo Activo para Nuevos Registros:</label>
+                    <div className="flex gap-2">
+                      <select
+                        value={periodoActivo}
+                        onChange={(e) => {
+                          onUpdateAdminSettings({ periodoActivo: e.target.value });
+                          onLogAction(`Establece periodo activo a ${e.target.value}`, 'ADMIN');
+                        }}
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none w-full font-bold cursor-pointer"
+                      >
+                        {periodos.map(p => (
+                          <option key={p} value={p}>Periodo {p}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <span className="text-[10px] text-slate-400 block mt-1 text-left">
+                      Los postulantes nuevos se registrarán automáticamente en este periodo.
+                    </span>
+                  </div>
+
+                  <hr className="border-slate-100" />
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Crear Nuevo Periodo Académico:</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Ej: 2027/1"
+                        value={newPeriodInput}
+                        onChange={(e) => setNewPeriodInput(e.target.value)}
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none w-full font-mono uppercase font-bold"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const val = newPeriodInput.trim().toUpperCase();
+                          if (!val) return;
+                          if (periodos.includes(val)) {
+                            triggerAlert?.('El periodo ya existe.', 'Error');
+                            return;
+                          }
+                          const updatedPeriodos = [...periodos, val];
+                          
+                          // Initialize default quotas for new period
+                          const updatedQuotas = [...cuposCarreras];
+                          carreras.forEach(c => {
+                            updatedQuotas.push({
+                              carrera_id: c.id,
+                              periodo: val,
+                              cupos: c.cupo_maximo
+                            });
+                          });
+
+                          onUpdateAdminSettings({
+                            periodos: updatedPeriodos,
+                            cuposCarreras: updatedQuotas
+                          });
+                          onLogAction(`Crea periodo académico ${val}`, 'ADMIN');
+                          setNewPeriodInput('');
+                          setSelectedPeriod(val);
+                          triggerAlert?.(`Periodo ${val} creado con éxito.`, 'Éxito');
+                        }}
+                        className="cursor-pointer bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-sans font-black uppercase px-3.5 py-1.5 rounded-xl transition-all"
+                      >
+                        Crear
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nota Minima Card */}
+              <div className="bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-md space-y-4">
+                <div className="flex items-center gap-2">
+                  <Award className="w-5 h-5 text-blue-600" />
+                  <span className="text-xs font-black text-slate-800 uppercase tracking-wide">Nota Mínima de Aprobación</span>
+                </div>
+                
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-xs font-bold text-slate-700">Nota de Corte del CUP:</label>
+                      <span className="bg-blue-50 text-blue-700 font-mono font-black text-xs px-2.5 py-0.5 rounded-lg border border-blue-200">
+                        {tempMinGrade} pts
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="51"
+                      max="100"
+                      value={tempMinGrade}
+                      onChange={(e) => setTempMinGrade(Number(e.target.value))}
+                      className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    />
+                    <div className="flex justify-between text-[9px] text-slate-400 font-mono">
+                      <span>51 pts (Mínimo legal)</span>
+                      <span>100 pts</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onUpdateAdminSettings({ notaMinimaAprobacion: tempMinGrade });
+                      onLogAction(`Establece nota mínima de aprobación a ${tempMinGrade}`, 'ADMIN');
+                      triggerAlert?.(`Nota de corte establecida en ${tempMinGrade} puntos.`, 'Nota Actualizada');
+                    }}
+                    className="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-sans font-black uppercase tracking-wider px-4 py-2 rounded-xl transition-all w-full text-center"
+                  >
+                    Guardar Nota de Corte
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Column 2: Cupos Config (Grid span 2) */}
+            <div className="lg:col-span-2 space-y-6">
+              
+              <div className="bg-white p-5 rounded-2xl border-2 border-slate-200 shadow-md space-y-4">
+                
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-blue-600" />
+                    <span className="text-xs font-black text-slate-800 uppercase tracking-wide">Configurar Cupos de Carrera</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Periodo a Configurar:</span>
+                    <select
+                      value={selectedPeriod}
+                      onChange={(e) => setSelectedPeriod(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-black focus:outline-none cursor-pointer"
+                    >
+                      {periodos.map(p => (
+                        <option key={p} value={p}>Periodo {p}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <hr className="border-slate-100" />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {carreras.map(c => {
+                    const currentVal = localQuotas[c.id] !== undefined ? localQuotas[c.id] : c.cupo_maximo;
+                    return (
+                      <div key={c.id} className="bg-slate-50 border border-slate-150 rounded-xl p-3.5 flex justify-between items-center">
+                        <div className="space-y-0.5">
+                          <span className="block font-black text-slate-800 uppercase text-[11px] tracking-tight">{c.nombre}</span>
+                          <span className="block text-[9px] text-slate-400 font-mono">ID Carrera: {c.id}</span>
+                        </div>
+                        <div className="w-24">
+                          <input
+                            type="number"
+                            min="0"
+                            value={currentVal}
+                            onChange={(e) => {
+                              const val = Math.max(0, parseInt(e.target.value) || 0);
+                              setLocalQuotas(prev => ({
+                                ...prev,
+                                [c.id]: val
+                              }));
+                            }}
+                            className="bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-center font-bold font-mono focus:outline-none w-full"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-2 flex justify-between items-center">
+                  <span className="text-[10px] text-slate-405 text-left max-w-sm leading-tight">
+                    * Modificar los cupos de Informática, Sistemas, Redes y Computación afectará la simulación de admisión en tiempo real para este periodo.
+                  </span>
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Update cuposCarreras state
+                      const updated = cuposCarreras.filter(cc => cc.periodo !== selectedPeriod);
+                      carreras.forEach(c => {
+                        const val = localQuotas[c.id] !== undefined ? localQuotas[c.id] : c.cupo_maximo;
+                        updated.push({
+                          carrera_id: c.id,
+                          periodo: selectedPeriod,
+                          cupos: val
+                        });
+
+                        // Sincronizar con el Backend Real si está disponible
+                        if (LaravelApiClient) {
+                          LaravelApiClient.updateCareerQuota(c.id, val).catch(() => {
+                            console.warn(`Error al sincronizar cupo de ${c.nombre} con el backend.`);
+                          });
+                        }
+                      });
+
+                      onUpdateAdminSettings({ cuposCarreras: updated });
+                      onLogAction(`Ajusta cupos para carreras en periodo ${selectedPeriod}`, 'ADMIN');
+                      triggerAlert?.(`Cupos de carreras actualizados para el período ${selectedPeriod}.`, 'Configuración Guardada');
+                    }}
+                    className="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-sans font-black uppercase tracking-wider px-5 py-3 rounded-xl transition-all"
+                  >
+                    Guardar Límites de Cupos
+                  </button>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* Interactive Simulation & Publication View */}
+          <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-md overflow-hidden space-y-4 p-5">
+            
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <h4 className="font-sans font-black text-[13px] text-slate-800 uppercase tracking-tight text-left">
+                  Simulación de Admisiones por Mérito Académico ({selectedPeriod})
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-0.5 text-left">
+                  Visualice el estado proyectado de admisión según el promedio de los estudiantes y los cupos definidos anteriormente.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  triggerConfirm?.(
+                    `¿Está seguro de publicar formalmente las admisiones para el periodo ${selectedPeriod}? Esto modificará de forma permanente el estado CUP de los postulantes de dicho período.`,
+                    () => {
+                      // Sincronizar con el Backend Real si está disponible
+                      if (LaravelApiClient) {
+                        LaravelApiClient.triggerOfficialAdmissionsClose().then(resp => {
+                          if (resp && resp.success) {
+                            console.info('Admisiones cerradas exitosamente en el backend.');
+                          }
+                        }).catch(() => {
+                          console.warn('Error al cerrar admisiones en el backend, procediendo con guardado local.');
+                        });
+                      }
+
+                      // Get all enforced admissions
+                      const results = getEnforcedAdmissions({
+                        usuarios,
+                        estudiantes,
+                        docentes,
+                        pagos: payments,
+                        grupos,
+                        notas: grades,
+                        asistencias: [],
+                        bitacoras,
+                        carreras,
+                        materias,
+                        historialAprobados,
+                        periodoActivo,
+                        periodos,
+                        cuposCarreras,
+                        notaMinimaAprobacion
+                      });
+
+                      // Filter results for selected period
+                      const updatedEstudiantes = estudiantes.map(est => {
+                        if ((est.periodo_cup || '2026/1') === selectedPeriod) {
+                          const match = results.find(r => r.estudiante_id === est.usuario_id);
+                          if (match) {
+                            return {
+                              ...est,
+                              estado_cup: match.estado_definitivo === 'Aprobado' ? 'Aprobado' as const :
+                                          match.estado_definitivo === 'Reprobado' ? 'Reprobado' as const :
+                                          match.estado_definitivo === 'Saturado (Sin Cupo)' ? 'Reprobado' as const :
+                                          est.estado_cup
+                            };
+                          }
+                        }
+                        return est;
+                      });
+
+                      onUpdateEstudiantesEstado(updatedEstudiantes);
+                      onLogAction(`Publica admisiones oficiales para el período ${selectedPeriod}`, 'ADMIN');
+                      triggerAlert?.(`Las admisiones del período ${selectedPeriod} han sido publicadas oficialmente.`, 'Admisiones Publicadas');
+                    },
+                    'Confirmar Publicación'
+                  );
+                }}
+                className="cursor-pointer bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-sans font-black uppercase tracking-wider px-5 py-3 rounded-xl border border-emerald-700 shadow-md transition-all flex items-center gap-1.5"
+              >
+                <FileCheck className="w-4 h-4" />
+                Publicar Admisiones Oficiales ({selectedPeriod})
+              </button>
+            </div>
+
+            {/* Metrics cards for simulation */}
+            {(() => {
+              const simResults = getEnforcedAdmissions({
+                usuarios,
+                estudiantes,
+                docentes,
+                pagos: payments,
+                grupos,
+                notas: grades,
+                asistencias: [],
+                bitacoras,
+                carreras,
+                materias,
+                historialAprobados,
+                periodoActivo,
+                periodos,
+                cuposCarreras,
+                notaMinimaAprobacion
+              }).filter(res => {
+                const est = estudiantes.find(e => e.usuario_id === res.estudiante_id);
+                return (est?.periodo_cup || '2026/1') === selectedPeriod;
+              });
+
+              const totalPost = simResults.length;
+              const approvedAcad = simResults.filter(r => r.gpa >= notaMinimaAprobacion).length;
+              const admitted = simResults.filter(r => r.estado_definitivo === 'Aprobado').length;
+              const saturated = simResults.filter(r => r.estado_definitivo === 'Saturado (Sin Cupo)').length;
+              const reprobados = simResults.filter(r => r.estado_definitivo === 'Reprobado').length;
+
+              return (
+                <div className="space-y-4">
+                  
+                  {/* Simulation Quick Summary Metrics */}
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5">
+                    
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block text-left">Total Postulantes</span>
+                      <span className="text-xl font-black text-slate-800 block mt-1 text-left">{totalPost}</span>
+                    </div>
+
+                    <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3.5">
+                      <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest block text-left">Aprobado Académico</span>
+                      <span className="text-xl font-black text-blue-700 block mt-1 text-left">{approvedAcad}</span>
+                    </div>
+
+                    <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-3.5">
+                      <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest block text-left">Admitidos (Con Cupo)</span>
+                      <span className="text-xl font-black text-emerald-700 block mt-1 text-left">{admitted}</span>
+                    </div>
+
+                    <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-3.5">
+                      <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest block text-left">Saturados (Sin Cupo)</span>
+                      <span className="text-xl font-black text-amber-700 block mt-1 text-left">{saturated}</span>
+                    </div>
+
+                    <div className="bg-rose-50/50 border border-rose-100 rounded-xl p-3.5">
+                      <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest block text-left">Reprobados</span>
+                      <span className="text-xl font-black text-rose-700 block mt-1 text-left">{reprobados}</span>
+                    </div>
+
+                  </div>
+
+                  {/* Simulation Student List Table */}
+                  <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-[9px] font-mono font-black text-slate-400 uppercase tracking-widest border-b border-slate-200 select-none">
+                          <th className="py-2.5 px-4">CI / Código</th>
+                          <th className="py-2.5 px-4">Estudiante</th>
+                          <th className="py-2.5 px-4">Opciones de Carrera</th>
+                          <th className="py-2.5 px-4 text-center">GPA Promedio</th>
+                          <th className="py-2.5 px-4">Estado Proyectado</th>
+                          <th className="py-2.5 px-4">Detalle / Observaciones</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs">
+                        {simResults.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="py-8 text-center text-slate-400 font-sans font-bold uppercase">
+                              Ningún estudiante registrado en el período {selectedPeriod}.
+                            </td>
+                          </tr>
+                        ) : (
+                          simResults.map(student => {
+                            const opt1 = carreras.find(c => c.id === student.carrera_opcion_1_id)?.nombre || 'Desconocido';
+                            const opt2 = carreras.find(c => c.id === student.carrera_opcion_2_id)?.nombre || 'Ninguna';
+                            
+                            let badgeStyle = 'bg-slate-100 text-slate-600';
+                            if (student.estado_definitivo === 'Aprobado') {
+                              badgeStyle = 'bg-emerald-50 border border-emerald-200 text-emerald-700 font-black';
+                            } else if (student.estado_definitivo === 'Reprobado') {
+                              badgeStyle = 'bg-rose-50 border border-rose-200 text-rose-700 font-bold';
+                            } else if (student.estado_definitivo === 'Saturado (Sin Cupo)') {
+                              badgeStyle = 'bg-amber-50 border border-amber-205 text-amber-700 font-black';
+                            } else if (student.estado_definitivo === 'Postulante') {
+                              badgeStyle = 'bg-blue-50 border border-blue-200 text-blue-700 font-bold';
+                            }
+
+                            return (
+                              <tr key={student.estudiante_id} className="hover:bg-slate-50/40 transition-colors">
+                                <td className="py-3 px-4 font-mono font-bold">
+                                  <span className="block text-slate-700">{student.ci}</span>
+                                  <span className="text-[10px] text-slate-400 font-normal">{student.estudiante_id}</span>
+                                </td>
+                                <td className="py-3 px-4 font-bold text-slate-800 uppercase tracking-tight">
+                                  {student.nombre_completo}
+                                </td>
+                                <td className="py-3 px-4 text-[11px] leading-tight">
+                                  <span className="block font-black text-slate-700">1ra: {opt1}</span>
+                                  <span className="block text-slate-400">2da: {opt2}</span>
+                                </td>
+                                <td className="py-3 px-4 text-center font-mono font-black text-[12px]">
+                                  <span className={student.gpa >= notaMinimaAprobacion ? 'text-emerald-600' : 'text-slate-500'}>
+                                    {student.gpa.toFixed(1)}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4">
+                                  <span className={`text-[9px] px-2.5 py-1 rounded-lg uppercase font-sans tracking-wide inline-block ${badgeStyle}`}>
+                                    {student.estado_definitivo === 'Aprobado' ? `Admitido (${student.carrera_nombre_admitida})` : student.estado_definitivo}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-[10px] text-slate-500 leading-snug">
+                                  {student.observaciones || 'Listo para procesamiento.'}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                </div>
+              );
+            })()}
 
           </div>
 

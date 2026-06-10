@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Usuario, EstudianteDetalle, Pago, Rol, Carrera } from '../types';
 import { downloadReceiptPDF } from '../lib/pdfGenerator';
+import { LaravelApiClient } from '../lib/laravelApi';
 import { 
   GraduationCap, 
   LogIn, 
@@ -28,13 +29,14 @@ interface AuthScreenProps {
   usuarios: Usuario[];
   estudiantes?: EstudianteDetalle[];
   carreras: Carrera[];
+  periodoActivo: string;
   onLogin: (user: Usuario) => void;
   onRegister: (newUser: Usuario, customDetails: any) => void;
   triggerAlert?: (message: string, title?: string) => void;
   triggerConfirm?: (message: string, onConfirm: () => void, title?: string) => void;
 }
 
-export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegister, carreras, triggerAlert }: AuthScreenProps) {
+export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegister, carreras, periodoActivo, triggerAlert }: AuthScreenProps) {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   
   // Custom alert wrapper
@@ -178,26 +180,63 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
       return;
     }
 
-    // Match by email OR by register code (codigo_registro) OR CI
-    const matched = usuarios.find(
-      u => u.email.toLowerCase() === loginEmail.toLowerCase().trim() || 
-           u.codigo_registro === loginEmail.trim() ||
-           u.ci === loginEmail.trim()
-    );
+    // Attempt real connection with PHP Laravel / PostgreSQL
+    LaravelApiClient.loginWithLaravel(loginEmail, loginPassword).then(response => {
+      if (response && response.success) {
+        // Successful Laravel auth! Map backend response to frontend user model
+        const backendUser = response.user;
+        onLogin({
+          id: backendUser.id,
+          codigo_registro: backendUser.codigo_registro,
+          ci: backendUser.ci,
+          nombre_completo: backendUser.nombre_completo,
+          email: backendUser.email,
+          rol: backendUser.rol as Rol,
+          estado: backendUser.estado,
+          created_at: new Date().toISOString()
+        });
+      } else {
+        // Laravel unavailable or invalid credentials, proceed to fallback (localStorage)
+        const matched = usuarios.find(
+          u => u.email.toLowerCase() === loginEmail.toLowerCase().trim() || 
+               u.codigo_registro === loginEmail.trim() ||
+               u.ci === loginEmail.trim()
+        );
 
-    if (matched) {
-      if (matched.estado === false) {
-        setLoginError('Su usuario está inactivo o suspendido en el sistema.');
-        return;
+        if (matched) {
+          if (matched.estado === false) {
+            setLoginError('Su usuario está inactivo o suspendido en el sistema.');
+            return;
+          }
+          if (matched.password && matched.password !== loginPassword) {
+            setLoginError('Contraseña incorrecta.');
+            return;
+          }
+          onLogin(matched);
+        } else {
+          setLoginError('Credenciales incorrectas o usuario no encontrado en el servidor académico.');
+        }
       }
-      if (matched.password && matched.password !== loginPassword) {
-        setLoginError('Contraseña incorrecta.');
-        return;
+    }).catch(err => {
+      console.warn('Backend login failure, using local fallback.');
+      
+      // Fallback in case of total fetch error (network down)
+      const matched = usuarios.find(
+        u => u.email.toLowerCase() === loginEmail.toLowerCase().trim() || 
+             u.codigo_registro === loginEmail.trim() ||
+             u.ci === loginEmail.trim()
+      );
+
+      if (matched) {
+        if (matched.password === loginPassword) {
+          onLogin(matched);
+        } else {
+          setLoginError('Contraseña incorrecta (Modo Offline).');
+        }
+      } else {
+        setLoginError('Error de conexión con el servidor y usuario no encontrado localmente.');
       }
-      onLogin(matched);
-    } else {
-      setLoginError('Credenciales incorrectas o usuario no encontrado.');
-    }
+    });
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
@@ -294,7 +333,8 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
           fecha_nacimiento: regFechaNacimiento,
           sexo: regSexo,
           titulo_bachiller: regHasTitle,
-          otros_documentos: 'Formulario de Inscripción digitalizado.'
+          otros_documentos: 'Formulario de Inscripción digitalizado.',
+          periodo_cup: periodoActivo
         } as EstudianteDetalle,
         initialPayment: {
           id: `p-reg-${Date.now()}`,

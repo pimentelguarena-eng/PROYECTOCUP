@@ -224,6 +224,7 @@ export const ESTUDIANTES_INICIALES: EstudianteDetalle[] = [
     sexo: 'Masculino',
     titulo_bachiller: true,
     otros_documentos: 'CI fotocopia, Certificado de Nacimiento',
+    periodo_cup: '2026/1',
   },
   {
     usuario_id: 'u-est-2',
@@ -240,6 +241,7 @@ export const ESTUDIANTES_INICIALES: EstudianteDetalle[] = [
     sexo: 'Femenino',
     titulo_bachiller: true,
     otros_documentos: 'CI fotocopia, Certificado de Nacimiento',
+    periodo_cup: '2026/1',
   },
   {
     usuario_id: 'u-est-3',
@@ -256,6 +258,7 @@ export const ESTUDIANTES_INICIALES: EstudianteDetalle[] = [
     sexo: 'Masculino',
     titulo_bachiller: true,
     otros_documentos: 'CI fotocopia',
+    periodo_cup: '2026/1',
   },
   {
     usuario_id: 'u-est-4',
@@ -272,14 +275,15 @@ export const ESTUDIANTES_INICIALES: EstudianteDetalle[] = [
     sexo: 'Femenino',
     titulo_bachiller: true,
     otros_documentos: 'CI fotocopia',
+    periodo_cup: '2026/1',
   },
   {
     usuario_id: 'u-est-5',
-    carrera_opcion_1: 1, // Inf (Wait, if cupo is full, let's see how they fall)
+    carrera_opcion_1: 1, // Inf
     carrera_opcion_2: 3, // Redes
     turno_preferido: 'Tarde',
     nro_intentos: 1,
-    estado_cup: 'Aprobado', // Will test limits
+    estado_cup: 'Aprobado',
     colegio_procedencia: 'Colegio Bautista',
     ciudad: 'Santa Cruz de la Sierra',
     celular: '76110291',
@@ -288,6 +292,7 @@ export const ESTUDIANTES_INICIALES: EstudianteDetalle[] = [
     sexo: 'Masculino',
     titulo_bachiller: true,
     otros_documentos: 'Exhibe libreta original',
+    periodo_cup: '2026/1',
   },
   {
     usuario_id: 'u-est-6',
@@ -304,6 +309,7 @@ export const ESTUDIANTES_INICIALES: EstudianteDetalle[] = [
     sexo: 'Femenino',
     titulo_bachiller: true,
     otros_documentos: 'Ninguno restante',
+    periodo_cup: '2026/1',
   },
   {
     usuario_id: 'u-est-7',
@@ -320,6 +326,7 @@ export const ESTUDIANTES_INICIALES: EstudianteDetalle[] = [
     sexo: 'Masculino',
     titulo_bachiller: true,
     otros_documentos: 'CI fotocopia',
+    periodo_cup: '2026/1',
   },
   {
     usuario_id: 'u-est-8',
@@ -336,6 +343,7 @@ export const ESTUDIANTES_INICIALES: EstudianteDetalle[] = [
     sexo: 'Femenino',
     titulo_bachiller: true,
     otros_documentos: 'Legalizado título',
+    periodo_cup: '2026/1',
   },
   {
     usuario_id: 'u-est-9',
@@ -352,6 +360,7 @@ export const ESTUDIANTES_INICIALES: EstudianteDetalle[] = [
     sexo: 'Masculino',
     titulo_bachiller: true,
     otros_documentos: 'CI fotocopia',
+    periodo_cup: '2026/1',
   },
   {
     usuario_id: 'u-est-10',
@@ -368,6 +377,7 @@ export const ESTUDIANTES_INICIALES: EstudianteDetalle[] = [
     sexo: 'Femenino',
     titulo_bachiller: true,
     otros_documentos: 'CI fotocopia',
+    periodo_cup: '2026/1',
   },
   {
     usuario_id: 'u-est-11',
@@ -384,6 +394,7 @@ export const ESTUDIANTES_INICIALES: EstudianteDetalle[] = [
     sexo: 'Masculino',
     titulo_bachiller: true,
     otros_documentos: 'Certificado de nacimiento original',
+    periodo_cup: '2026/1',
   },
   {
     usuario_id: 'u-est-12',
@@ -400,6 +411,7 @@ export const ESTUDIANTES_INICIALES: EstudianteDetalle[] = [
     sexo: 'Femenino',
     titulo_bachiller: false, // Requisito faltante!
     otros_documentos: 'CI fotocopia',
+    periodo_cup: '2026/1',
   },
 ];
 

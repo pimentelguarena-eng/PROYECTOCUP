@@ -452,6 +452,7 @@ export default function App() {
         usuarios={db.usuarios} 
         estudiantes={db.estudiantes}
         carreras={db.carreras} 
+        periodoActivo={db.periodoActivo || '2026/1'}
         onLogin={(usr) => {
           setSessionUser(usr);
           setDb(prev => logAction(
@@ -644,6 +645,12 @@ export default function App() {
               carreras={db.carreras}
               materias={db.materias}
               historialAprobados={db.historialAprobados}
+              periodoActivo={db.periodoActivo}
+              periodos={db.periodos}
+              cuposCarreras={db.cuposCarreras}
+              notaMinimaAprobacion={db.notaMinimaAprobacion}
+              onUpdateAdminSettings={(settings) => setDb(prev => ({ ...prev, ...settings }))}
+              onUpdateEstudiantesEstado={(updated) => setDb(prev => ({ ...prev, estudiantes: updated }))}
               onUpdateHistorialAprobados={(updated) => setDb(prev => ({ ...prev, historialAprobados: updated }))}
               onAddStudent={handleAddStudent}
               onEditStudent={handleEditStudent}
@@ -686,10 +693,11 @@ export default function App() {
               materias={db.materias}
               usuarios={db.usuarios}
               grupos={db.grupos}
+              notaMinimaAprobacion={db.notaMinimaAprobacion}
               onUploadVoucher={handleStudentUploadVoucher}
               onUpdateDocs={handleStudentUploadDocs}
               onUpdatePassword={handleStudentUpdatePassword}
-              admissionResult={admissionResults.find(a => a.estudiante_id === activeUser.id)}
+              admissionResult={admissionResults.find(a => a.estudiante_id === activeUser.id)!}
               triggerAlert={triggerAlert}
               triggerConfirm={triggerConfirm}
             />

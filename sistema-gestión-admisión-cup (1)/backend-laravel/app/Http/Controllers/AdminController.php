@@ -14,19 +14,6 @@ use App\Models\Estudiante;
 class AdminController extends Controller
 {
     /**
-     * Map of default capacities/quotas per academic career to align with the SQL schema
-     */
-    private function getCareerQuotas()
-    {
-        return [
-            1 => 5, // Ingeniería Informática
-            2 => 4, // Ingeniería de Sistemas
-            3 => 6, // Ingeniería en Redes y Telecomunicaciones
-            4 => 3  // Ingeniería en Ciencias de la Computación
-        ];
-    }
-
-    /**
      * Fetch central system statistics for dashboard components
      */
     public function getStats(Request $request)
@@ -43,14 +30,7 @@ class AdminController extends Controller
         $paymentsValidated = Pago::where('estado_pago', 'Pagado')->count();
         $collectedAmounts = Pago::where('estado_pago', 'Pagado')->sum('monto');
 
-        $carrerasRaw = Carrera::all();
-        $quotas = $this->getCareerQuotas();
-
-        // Map quotas dynamically so the frontend receives them
-        $carreras = $carrerasRaw->map(function ($c) use ($quotas) {
-            $c->cupo_maximo = $quotas[$c->id] ?? 5;
-            return $c;
-        });
+        $carreras = Carrera::all();
 
         return response()->json([
             'metrics' => [
@@ -94,10 +74,11 @@ class AdminController extends Controller
         $request->validate(['cupo_maximo' => 'required|integer|min:1|max:1000']);
 
         $carrera = Carrera::findOrFail($id);
+        $carrera->update(['cupo_maximo' => $request->input('cupo_maximo')]);
         
         Bitacora::create([
             'usuario_id' => $user->id,
-            'accion' => "Intentó modificar cupo máximo de la carrera ({$carrera->nombre}) a [{$request->input('cupo_maximo')}].",
+            'accion' => "Modificó cupo máximo de la carrera ({$carrera->nombre}) a [{$request->input('cupo_maximo')}].",
             'modulo' => 'ADMIN CONFIG',
             'ip_address' => $request->ip() ?: '190.181.240.100'
         ]);
@@ -105,11 +86,7 @@ class AdminController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Límite de cupo CUP de carrera procesado exitosamente.',
-            'carrera' => [
-                'id' => $carrera->id,
-                'nombre' => $carrera->nombre,
-                'cupo_maximo' => $request->input('cupo_maximo')
-            ]
+            'carrera' => $carrera
         ]);
     }
 
@@ -149,6 +126,12 @@ class AdminController extends Controller
                 'estado_pago' => 'Pagado',
                 'fecha_pago' => now()
             ]);
+
+            // Al validar el pago, el estudiante pasa de 'Postulante' a 'Inscrito' automáticamente
+            if ($pago->estudiante) {
+                $pago->estudiante->update(['estado_cup' => 'Inscrito']);
+            }
+
             $actionStr = "Aprobó comprobante de pago de 700Bs del Postulante Nro. Factura: {$pago->nro_factura}";
         } else {
             // Revert state
@@ -156,6 +139,12 @@ class AdminController extends Controller
                 'estado_pago' => 'Pendiente',
                 'fecha_pago' => null
             ]);
+
+            // Al revertir el pago, vuelve a ser 'Postulante'
+            if ($pago->estudiante) {
+                $pago->estudiante->update(['estado_cup' => 'Postulante']);
+            }
+
             $actionStr = "Marcó como Pendiente/Invitado comprobante de depósito del Postulante.";
         }
 
@@ -187,12 +176,13 @@ class AdminController extends Controller
         // Run transaction safely
         DB::transaction(function () use ($user, $request) {
             $carreras = Carrera::all();
-            $quotas = $this->getCareerQuotas();
             
             // Limit counters per Career Option
             $quotaCounters = [];
+            $quotas = [];
             foreach ($carreras as $c) {
                 $quotaCounters[$c->id] = 0;
+                $quotas[$c->id] = $c->cupo_maximo;
             }
 
             // Retrieve student details
@@ -245,11 +235,11 @@ class AdminController extends Controller
                 } elseif ($gpaScore >= 60) {
                     // Check Option 1
                     $op1Id = $stDetail->carrera_opcion_1;
-                    $careerQuota1 = $quotas[$op1Id] ?? 5;
+                    $careerQuota1 = $quotas[$op1Id] ?? 0;
 
                     // Check Option 2
                     $op2Id = $stDetail->carrera_opcion_2;
-                    $careerQuota2 = $quotas[$op2Id] ?? 5;
+                    $careerQuota2 = $quotas[$op2Id] ?? 0;
 
                     if ($quotaCounters[$op1Id] < $careerQuota1) {
                         $stDetail->estado_cup = 'Aprobado';

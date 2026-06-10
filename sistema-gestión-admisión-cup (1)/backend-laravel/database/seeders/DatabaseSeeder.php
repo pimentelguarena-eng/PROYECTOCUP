@@ -46,10 +46,10 @@ class DatabaseSeeder extends Seeder
         // 2. CARRERAS Y MATERIAS
         // ----------------------------------------------------------------------------
         
-        $c1 = Carrera::create(['id' => 1, 'nombre' => 'Ingeniería Informática']);
-        $c2 = Carrera::create(['id' => 2, 'nombre' => 'Ingeniería en Sistemas']);
-        $c3 = Carrera::create(['id' => 3, 'nombre' => 'Ingeniería Redes y Telecomunicaciones']);
-        $c4 = Carrera::create(['id' => 4, 'nombre' => 'Robótica']);
+        $c1 = Carrera::create(['id' => 1, 'nombre' => 'Ingeniería Informática', 'cupo_maximo' => 5]);
+        $c2 = Carrera::create(['id' => 2, 'nombre' => 'Ingeniería en Sistemas', 'cupo_maximo' => 4]);
+        $c3 = Carrera::create(['id' => 3, 'nombre' => 'Ingeniería Redes y Telecomunicaciones', 'cupo_maximo' => 6]);
+        $c4 = Carrera::create(['id' => 4, 'nombre' => 'Robótica', 'cupo_maximo' => 3]);
 
         $m1 = Materia::create(['id' => 1, 'nombre' => 'Computación']);
         $m2 = Materia::create(['id' => 2, 'nombre' => 'Matemáticas']);

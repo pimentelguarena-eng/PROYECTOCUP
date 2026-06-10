@@ -25,7 +25,23 @@ export default function ReportPanel({
   const [reportFilter, setReportFilter] = useState<'todos' | 'aprobados' | 'reprobados' | 'grupos' | 'materias' | 'docentes'>('todos');
 
   // Enforced academic outcome details
-  const stateSnapshot = { usuarios, estudiantes, pagos: payments, notas: grades, carreras, grupos, docentes: [], asistencias: [], bitacoras: [], materias, historialAprobados: [] };
+  const stateSnapshot: any = { 
+    usuarios, 
+    estudiantes, 
+    pagos: payments, 
+    notas: grades, 
+    carreras, 
+    grupos, 
+    docentes: [], 
+    asistencias: [], 
+    bitacoras: [], 
+    materias, 
+    historialAprobados: [],
+    periodoActivo: '2026/1',
+    periodos: ['2026/1', '2026/2'],
+    cuposCarreras: [],
+    notaMinimaAprobacion: 60
+  };
   const admissionResults = getEnforcedAdmissions(stateSnapshot);
 
   // 1. Filter applicants lists

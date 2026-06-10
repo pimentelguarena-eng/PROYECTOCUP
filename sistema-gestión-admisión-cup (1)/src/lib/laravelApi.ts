@@ -108,6 +108,25 @@ export class LaravelApiClient {
   }
 
   /**
+   * Actualizar el cupo máximo de una carrera (Solo Administradores)
+   */
+  public static async updateCareerQuota(carreraId: number, cupoMaximo: number): Promise<any> {
+    try {
+      const response = await fetch(`${LARAVEL_API_BASE}/admin/carreras/${carreraId}/quota`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          cupo_maximo: cupoMaximo
+        }),
+      });
+      return await response.json();
+    } catch (e) {
+      console.info('[Laravel Fallback] Actualizando cupo en el datastore local.');
+      return null;
+    }
+  }
+
+  /**
    * Cierre oficial del periodo por un Administrador Central
    */
   public static async triggerOfficialAdmissionsClose(): Promise<any> {
