@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Usuario, EstudianteDetalle, Pago, Nota, Asistencia, Carrera, Materia, Grupo } from '../types';
+import { downloadReceiptPDF } from '../lib/pdfGenerator';
 import {
   CheckCircle,
   AlertTriangle,
@@ -709,15 +710,27 @@ export default function EstudiantePanel({
 
                   <button
                     onClick={() => {
+                      const careerName = c1?.nombre || 'Ingeniería';
+                      downloadReceiptPDF({
+                        username: user.codigo_registro,
+                        pass: user.password || user.ci,
+                        fullName: user.nombre_completo,
+                        ci: user.ci,
+                        career: careerName,
+                        paymentRef: currentPay?.nro_factura || 'F-2026-9041',
+                        paymentMethod: currentPay?.nro_factura?.startsWith('FAC-') ? 'Tarjeta de Crédito/Débito' : 'Depósito Bancario / QR',
+                        date: currentPay?.fecha_pago ? new Date(currentPay.fecha_pago).toLocaleString('es-ES') : new Date().toLocaleString('es-ES'),
+                        status: 'PAGADO',
+                        turno: estudiante?.turno_preferido || 'Mañana'
+                      });
                       if (triggerAlert) {
-                        triggerAlert(`Generando boleta fiscal e imprimiendo el comprobante oficial de arancel de matrícula para el postulante: \n\n${user.nombre_completo.toUpperCase()}`, 'Impresión de Comprobante');
-                      } else {
-                        alert(`Imprimiendo comprobante oficial de arancel de matrícula para postulante ${user.nombre_completo.toUpperCase()}`);
+                        triggerAlert(`Se ha generado y descargado exitosamente la Boleta Fiscal en PDF para el postulante: \n\n${user.nombre_completo.toUpperCase()}`, 'Boleta Descargada');
                       }
                     }}
-                    className="w-full cursor-pointer bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-sans font-black uppercase tracking-wider py-3.5 px-4 rounded-xl transition-all border border-slate-750 shadow text-center"
+                    className="w-full cursor-pointer bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-sans font-black uppercase tracking-wider py-3.5 px-4 rounded-xl transition-all border border-slate-750 shadow text-center flex items-center justify-center gap-2"
                   >
-                    Imprimir Comprobante Fiscal (Factura Oficial)
+                    <Download className="w-4 h-4 text-white" />
+                    Descargar Comprobante Fiscal (PDF)
                   </button>
                 </div>
               ) : isPending ? (

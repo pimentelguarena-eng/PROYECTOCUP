@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Usuario, EstudianteDetalle, Pago, Rol, Carrera } from '../types';
+import { downloadReceiptPDF } from '../lib/pdfGenerator';
 import { 
   GraduationCap, 
   LogIn, 
@@ -19,7 +20,8 @@ import {
   HelpCircle,
   FileText,
   Printer,
-  CheckCircle
+  CheckCircle,
+  Download
 } from 'lucide-react';
 
 interface AuthScreenProps {
@@ -125,6 +127,7 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
     paymentMethod: string;
     date: string;
     status: string;
+    turno?: string;
   } | null>(null);
 
   // Interactive Card fields
@@ -438,14 +441,14 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
                 <div className="flex-1 flex flex-col gap-1">
                   <button
                     type="button"
-                    onClick={() => window.print()}
+                    onClick={() => registeredCredentials && downloadReceiptPDF(registeredCredentials)}
                     className="w-full bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white text-xs font-black uppercase tracking-wider py-3 px-4 rounded-xl transition-all border border-blue-400 shadow-md flex items-center justify-center gap-2 cursor-pointer font-sans"
                   >
-                    <Printer className="w-5 h-5 text-white" />
-                    Imprimir / Guardar PDF
+                    <Download className="w-5 h-5 text-white" />
+                    Descargar Boleta de Pago (PDF)
                   </button>
                   <span className="text-[8.5px] text-slate-500 text-center font-sans">
-                    * Seleccione "Guardar como PDF" en el destino de impresión.
+                    * Se descargará un documento PDF oficial con código QR y validación fiscal.
                   </span>
                 </div>
                 <button
@@ -723,7 +726,8 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
                           paymentRef: finalDetails.initialPayment.nro_factura,
                           paymentMethod: 'Código QR Simple',
                           date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
-                          status: 'Pagado'
+                          status: 'Pagado',
+                          turno: regTurno
                         });
                       }}
                       className="w-full bg-emerald-600 hover:bg-emerald-500 hover:shadow-emerald-500/20 active:scale-[0.99] text-white text-xs font-black uppercase tracking-wider py-3 px-4 rounded-xl transition-all border border-emerald-400 shadow-md flex items-center justify-center gap-2 cursor-pointer"
@@ -874,7 +878,8 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
                           paymentRef: finalDetails.initialPayment.nro_factura,
                           paymentMethod: 'Tarjeta de Crédito/Débito',
                           date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
-                          status: 'Pagado'
+                          status: 'Pagado',
+                          turno: regTurno
                         });
                       }}
                       className="w-full bg-blue-600 hover:bg-blue-500 hover:shadow-blue-500/20 active:scale-[0.99] text-white text-xs font-black uppercase tracking-wider py-3.5 px-4 rounded-xl transition-all border border-blue-400 shadow-md flex items-center justify-center gap-2 cursor-pointer"
@@ -1020,7 +1025,8 @@ export default function AuthScreen({ usuarios, estudiantes = [], onLogin, onRegi
                           paymentRef: finalDetails.initialPayment.nro_factura,
                           paymentMethod: `Depósito Bancario / Transferencia (${transferBank})`,
                           date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString(),
-                          status: autoApproveTransfer ? 'Pagado' : 'Pendiente de Validación'
+                          status: autoApproveTransfer ? 'Pagado' : 'Pendiente de Validación',
+                          turno: regTurno
                         });
                       }}
                       className="w-full bg-amber-600 hover:bg-amber-500 hover:shadow-amber-500/20 active:scale-[0.99] text-white text-xs font-black uppercase tracking-wider py-3.5 px-4 rounded-xl transition-all border border-amber-400 shadow-md flex items-center justify-center gap-2 cursor-pointer font-sans"
