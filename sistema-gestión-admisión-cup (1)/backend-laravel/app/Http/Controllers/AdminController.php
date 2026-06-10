@@ -198,7 +198,7 @@ class AdminController extends Controller
                 if ($subjectGrades->count() > 0) {
                     $sum = 0;
                     foreach ($subjectGrades as $n) {
-                        $sum += ($n->nota_parcial_1 + $n->nota_parcial_2 + $n->nota_examen_final) / 3;
+                        $sum += (($n->nota_parcial_1 + $n->nota_parcial_2 + $n->nota_examen_final) / 3) * 10;
                     }
                     $gpa = $sum / $subjectGrades->count();
                 }

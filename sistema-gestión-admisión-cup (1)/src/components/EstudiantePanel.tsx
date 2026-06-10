@@ -92,29 +92,38 @@ export default function EstudiantePanel({
   const myEnrolledGroups = grupos.filter(g => g.estudiantes_ids.includes(user.id));
 
   // Determine taken exams and overall completeness
-  // There are 4 materias, 3 exams each = 12 total exams
+  const studentGrades = grades.filter(g => g.estudiante_id === user.id);
+  
+  // Calculate scores for the 3 global exams (worth 100 points each, 10 questions per subject, 4 subjects, total 40 questions)
+  // Each correct question is worth 2.5 points (100 points / 40 questions = 2.5)
+  const getExamTotalScore = (examNum: 1 | 2 | 3) => {
+    let correctQuestions = 0;
+    materias.forEach(m => {
+      const g = studentGrades.find(grade => grade.materia_id === m.id);
+      if (g) {
+        if (examNum === 1) correctQuestions += g.nota_parcial_1;
+        if (examNum === 2) correctQuestions += g.nota_parcial_2;
+        if (examNum === 3) correctQuestions += g.nota_examen_final;
+      }
+    });
+    return correctQuestions * 2.5;
+  };
+
+  const exam1Score = getExamTotalScore(1);
+  const exam2Score = getExamTotalScore(2);
+  const exam3Score = getExamTotalScore(3);
+
+  // An exam is considered graded if the student has grades for it
+  const hasEx1 = studentGrades.some(g => g.nota_parcial_1 > 0);
+  const hasEx2 = studentGrades.some(g => g.nota_parcial_2 > 0);
+  const hasEx3 = studentGrades.some(g => g.nota_examen_final > 0);
+
   let examsTakenCount = 0;
-  let takenExamsList: { materiaId: number; materiaNombre: string; exam: string; score: number }[] = [];
+  if (hasEx1) examsTakenCount++;
+  if (hasEx2) examsTakenCount++;
+  if (hasEx3) examsTakenCount++;
 
-  materias.forEach(m => {
-    const studentGrade = grades.find(g => g.materia_id === m.id && g.estudiante_id === user.id);
-    if (studentGrade) {
-      if (studentGrade.nota_parcial_1 > 0) {
-        examsTakenCount++;
-        takenExamsList.push({ materiaId: m.id, materiaNombre: m.nombre, exam: 'Parcial 1', score: studentGrade.nota_parcial_1 });
-      }
-      if (studentGrade.nota_parcial_2 > 0) {
-        examsTakenCount++;
-        takenExamsList.push({ materiaId: m.id, materiaNombre: m.nombre, exam: 'Parcial 2', score: studentGrade.nota_parcial_2 });
-      }
-      if (studentGrade.nota_examen_final > 0) {
-        examsTakenCount++;
-        takenExamsList.push({ materiaId: m.id, materiaNombre: m.nombre, exam: 'Examen Final', score: studentGrade.nota_examen_final });
-      }
-    }
-  });
-
-  const totalExamsOfSystem = materias.length * 3; // 12
+  const totalExamsOfSystem = 3;
   const allExamsCompleted = examsTakenCount === totalExamsOfSystem;
 
   const handlePaySubmit = (e: React.FormEvent) => {
@@ -220,7 +229,7 @@ export default function EstudiantePanel({
         <div className="bg-slate-900 rounded-2xl p-5 text-white shadow-md flex items-center justify-between border-2 border-slate-850 relative md:col-span-2 lg:col-span-1">
           <div className="space-y-1">
             <span className="text-[9px] text-blue-405 font-black uppercase tracking-wider">Promedio Parcial (CUP)</span>
-            <p className="font-mono text-3xl font-black">{gpa.toFixed(1)} <span className="text-xs text-slate-400">/ 100</span></p>
+            <p className="font-mono text-3xl font-black">{gpa.toFixed(2)} <span className="text-xs text-slate-400">/ 100</span></p>
             <p className="text-[10px] text-slate-400 leading-none">Min. Aprobación: {notaMinimaAprobacion} puntos.</p>
           </div>
           <div className="text-right">
@@ -280,7 +289,7 @@ export default function EstudiantePanel({
                   ></div>
                 </div>
                 <span className="text-[10px] text-slate-500 font-medium block">
-                  Consta de 3 exámenes para cada una de las 4 materias curriculares (Computación, Matemáticas, Inglés y Física).
+                  Consta de 3 exámenes generales. Cada uno evalúa 4 materias con 10 preguntas cada una (total 40 preguntas).
                 </span>
               </div>
 
@@ -289,10 +298,10 @@ export default function EstudiantePanel({
                 <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-4.5 space-y-3">
                   <div className="flex items-center gap-2 text-orange-850">
                     <Award className="w-5 h-5 text-orange-600 shrink-0" />
-                    <span className="font-sans font-black text-xs uppercase tracking-wider">EXÁMENES COMPLETADOS (12/12)</span>
+                    <span className="font-sans font-black text-xs uppercase tracking-wider">EXÁMENES COMPLETADOS (3/3)</span>
                   </div>
                   <p className="text-xs text-orange-800 leading-snug">
-                    Ha completado la totalidad de evaluaciones de la FICCT.
+                    Ha completado la totalidad de los 3 exámenes de la FICCT.
                   </p>
 
                   {gpa >= notaMinimaAprobacion ? (
@@ -318,10 +327,10 @@ export default function EstudiantePanel({
                 <div className="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4.5 space-y-2.5">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4.5 h-4.5 text-slate-500 shrink-0 animate-pulse" />
-                    <span className="font-sans font-black text-xs uppercase text-slate-700 tracking-wider">PRUEBAS EN DESARROLLO ({examsTakenCount}/12)</span>
+                    <span className="font-sans font-black text-xs uppercase text-slate-700 tracking-wider">PRUEBAS EN DESARROLLO ({examsTakenCount}/3)</span>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed font-sans">
-                    Usted registra <span className="font-black text-slate-850 bg-slate-200/85 px-1.5 py-0.5 rounded">{examsTakenCount} exámenes rendidos</span> en el sistema académico. Faltan <strong className="text-blue-600">{12 - examsTakenCount} evaluaciones</strong> por registrar por su docente de área.
+                    Usted registra <span className="font-black text-slate-850 bg-slate-200/85 px-1.5 py-0.5 rounded">{examsTakenCount} exámenes generales rendidos</span> en el sistema académico. Faltan <strong className="text-blue-600">{3 - examsTakenCount} evaluaciones generales</strong> por registrar por sus docentes.
                   </p>
                   <p className="text-[10px] text-slate-500 font-bold tracking-wide italic block bg-white p-2 rounded-lg border border-slate-150">
                     * El estado definitivo se publicará en el panel central de postores una vez que se completen todas las actas de evaluación para el turno {estudiante.turno_preferido.toUpperCase()}.
@@ -427,16 +436,61 @@ export default function EstudiantePanel({
           {/* RIGHT COLUMNS: Detailed individual exam scores for each of the materias (Cursos) */}
           <div className="lg:col-span-2 space-y-6">
 
+            {/* Global Exams Card */}
+            <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-md p-6 space-y-4">
+              <div>
+                <h3 className="font-sans font-black text-slate-900 text-lg uppercase tracking-tight">Mis Exámenes Generales</h3>
+                <p className="text-xs text-slate-500 font-sans mt-0.5">
+                  Cada examen general evalúa 4 materias simultáneamente con 10 preguntas por materia (40 preguntas en total). Cada examen vale 100 puntos.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Examen 1 */}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] text-blue-600 font-black uppercase tracking-wider block">Examen 1</span>
+                    <span className="font-mono text-2xl font-black text-slate-800">{exam1Score.toFixed(2)} <span className="text-xs text-slate-450">/ 100</span></span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-2 font-medium">
+                    Preguntas correctas: {studentGrades.reduce((sum, g) => sum + g.nota_parcial_1, 0)} / 40
+                  </p>
+                </div>
+
+                {/* Examen 2 */}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] text-blue-600 font-black uppercase tracking-wider block">Examen 2</span>
+                    <span className="font-mono text-2xl font-black text-slate-800">{exam2Score.toFixed(1)} <span className="text-xs text-slate-450">/ 100</span></span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-2 font-medium">
+                    Preguntas correctas: {studentGrades.reduce((sum, g) => sum + g.nota_parcial_2, 0)} / 40
+                  </p>
+                </div>
+
+                {/* Examen 3 */}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[10px] text-blue-600 font-black uppercase tracking-wider block">Examen 3</span>
+                    <span className="font-mono text-2xl font-black text-slate-800">{exam3Score.toFixed(2)} <span className="text-xs text-slate-450">/ 100</span></span>
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-2 font-medium">
+                    Preguntas correctas: {studentGrades.reduce((sum, g) => sum + g.nota_examen_final, 0)} / 40
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="bg-white rounded-2xl border-2 border-slate-200 shadow-md p-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 mb-4 gap-2">
                 <div>
                   <h3 className="font-sans font-black text-slate-900 text-lg uppercase tracking-tight">Detalle de Calificaciones por Examen</h3>
                   <p className="text-xs text-slate-500 font-sans mt-0.5">
-                    Revise el estado ("si ya dio algún examen qué nota tiene") para cada una de las materias evaluadas.
+                    Revise el número de respuestas correctas (0-10) y su equivalente en puntos por cada materia evaluada.
                   </p>
                 </div>
                 <div className="font-mono text-xs bg-slate-50 border px-3 py-1.5 rounded-xl text-slate-600 font-bold shrink-0 self-start">
-                  Exámenes Rendidos: {examsTakenCount} / 12
+                  Exámenes Rendidos: {examsTakenCount} / 3
                 </div>
               </div>
 
@@ -454,8 +508,8 @@ export default function EstudiantePanel({
                   const hasP2 = grade.nota_parcial_2 > 0;
                   const hasEF = grade.nota_examen_final > 0;
 
-                  // Average calculations
-                  const matterAvg = (grade.nota_parcial_1 + grade.nota_parcial_2 + grade.nota_examen_final) / 3;
+                  // Average calculations scaled to 100 points
+                  const matterAvg = ((grade.nota_parcial_1 + grade.nota_parcial_2 + grade.nota_examen_final) / 3) * 10;
 
                   return (
                     <div key={m.id} className="bg-slate-50 rounded-2xl border-2 border-slate-200 p-4 space-y-3.5 hover:border-slate-350 transition-all relative overflow-hidden flex flex-col justify-between">
@@ -474,45 +528,45 @@ export default function EstudiantePanel({
                       <div className="space-y-2 font-sans text-xs">
                         {/* Examen 1 */}
                         <div className="flex justify-between items-center bg-white border rounded-xl p-2">
-                          <span className="font-black text-slate-600 uppercase text-[9.5px]">Examen Parcial I:</span>
+                          <span className="font-black text-slate-600 uppercase text-[9.5px]">Examen 1 (0-10):</span>
                           <div className="flex items-center gap-2">
                             {hasP1 ? (
                               <>
-                                <span className="font-mono font-black text-slate-850 bg-slate-100 px-2 py-0.5 rounded text-xs">{grade.nota_parcial_1} pts</span>
+                                <span className="font-mono font-black text-slate-850 bg-slate-100 px-2 py-0.5 rounded text-xs">{grade.nota_parcial_1} / 10 correctas ({grade.nota_parcial_1 * 10} pts)</span>
                                 <span className="text-[9px] font-bold text-emerald-600 uppercase">Rendido</span>
                               </>
                             ) : (
-                              <span className="text-[9px] font-bold text-slate-400 italic">No rendido yet (0 pts)</span>
+                              <span className="text-[9px] font-bold text-slate-400 italic">No rendido (0/10)</span>
                             )}
                           </div>
                         </div>
 
                         {/* Examen 2 */}
                         <div className="flex justify-between items-center bg-white border rounded-xl p-2">
-                          <span className="font-black text-slate-600 uppercase text-[9.5px]">Examen Parcial II:</span>
+                          <span className="font-black text-slate-600 uppercase text-[9.5px]">Examen 2 (0-10):</span>
                           <div className="flex items-center gap-2">
                             {hasP2 ? (
                               <>
-                                <span className="font-mono font-black text-slate-850 bg-slate-100 px-2 py-0.5 rounded text-xs">{grade.nota_parcial_2} pts</span>
+                                <span className="font-mono font-black text-slate-850 bg-slate-100 px-2 py-0.5 rounded text-xs">{grade.nota_parcial_2} / 10 correctas ({grade.nota_parcial_2 * 10} pts)</span>
                                 <span className="text-[9px] font-bold text-emerald-600 uppercase">Rendido</span>
                               </>
                             ) : (
-                              <span className="text-[9px] font-bold text-slate-400 italic">No rendido yet (0 pts)</span>
+                              <span className="text-[9px] font-bold text-slate-400 italic">No rendido (0/10)</span>
                             )}
                           </div>
                         </div>
 
-                        {/* Examen Final */}
+                        {/* Examen 3 */}
                         <div className="flex justify-between items-center bg-white border rounded-xl p-2">
-                          <span className="font-black text-slate-600 uppercase text-[9.5px]">Examen Final del CUP:</span>
+                          <span className="font-black text-slate-600 uppercase text-[9.5px]">Examen 3 (0-10):</span>
                           <div className="flex items-center gap-2">
                             {hasEF ? (
                               <>
-                                <span className="font-mono font-black text-slate-850 bg-slate-100 px-2 py-0.5 rounded text-xs">{grade.nota_examen_final} pts</span>
+                                <span className="font-mono font-black text-slate-850 bg-slate-100 px-2 py-0.5 rounded text-xs">{grade.nota_examen_final} / 10 correctas ({grade.nota_examen_final * 10} pts)</span>
                                 <span className="text-[9px] font-bold text-emerald-600 uppercase">Rendido</span>
                               </>
                             ) : (
-                              <span className="text-[9px] font-bold text-slate-400 italic">No rendido yet (0 pts)</span>
+                              <span className="text-[9px] font-bold text-slate-400 italic">No rendido (0/10)</span>
                             )}
                           </div>
                         </div>

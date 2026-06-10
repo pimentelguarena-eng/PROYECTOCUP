@@ -70,9 +70,9 @@ class DocenteController extends Controller
         $request->validate([
             'estudiante_id' => 'required|integer',
             'materia_id' => 'required|integer',
-            'p1' => 'required|numeric|min:0|max:100',
-            'p2' => 'required|numeric|min:0|max:100',
-            'ef' => 'required|numeric|min:0|max:100'
+            'p1' => 'required|numeric|min:0|max:10',
+            'p2' => 'required|numeric|min:0|max:10',
+            'ef' => 'required|numeric|min:0|max:10'
         ]);
 
         $estudianteId = $request->input('estudiante_id');
@@ -82,7 +82,8 @@ class DocenteController extends Controller
         $ef = $request->input('ef');
 
         // Automated GPA formula based on UAGRM academic system: Average of assessments
-        $pG = round(($p1 + $p2 + $ef) / 3);
+        // Scale 0-10 to 0-100 by multiplying by 10
+        $pG = round((($p1 + $p2 + $ef) / 3) * 10, 2);
 
         // Save or update scores
         $nota = Nota::updateOrCreate(

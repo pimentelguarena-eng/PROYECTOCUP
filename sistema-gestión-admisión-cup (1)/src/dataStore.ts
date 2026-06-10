@@ -72,7 +72,32 @@ export function loadDatabase(): DatabaseState {
     const docentes = localStorage.getItem(KEYS.DOCENTES) ? JSON.parse(localStorage.getItem(KEYS.DOCENTES)!) : DOCENTES_INICIALES;
     const pagos = localStorage.getItem(KEYS.PAGOS) ? JSON.parse(localStorage.getItem(KEYS.PAGOS)!) : PAGOS_INICIALES;
     const grupos = localStorage.getItem(KEYS.GRUPOS) ? JSON.parse(localStorage.getItem(KEYS.GRUPOS)!) : GRUPOS_INICIALES;
-    const notas = localStorage.getItem(KEYS.NOTAS) ? JSON.parse(localStorage.getItem(KEYS.NOTAS)!) : NOTAS_INICIALES;
+    
+    let notas = localStorage.getItem(KEYS.NOTAS) ? JSON.parse(localStorage.getItem(KEYS.NOTAS)!) : NOTAS_INICIALES;
+    if (Array.isArray(notas)) {
+      let migrated = false;
+      notas = notas.map(n => {
+        if (n.nota_parcial_1 > 10 || n.nota_parcial_2 > 10 || n.nota_examen_final > 10) {
+          migrated = true;
+          const p1 = n.nota_parcial_1 > 10 ? n.nota_parcial_1 / 10 : n.nota_parcial_1;
+          const p2 = n.nota_parcial_2 > 10 ? n.nota_parcial_2 / 10 : n.nota_parcial_2;
+          const ef = n.nota_examen_final > 10 ? n.nota_examen_final / 10 : n.nota_examen_final;
+          const matterAvg = parseFloat((((p1 + p2 + ef) / 3) * 10).toFixed(2));
+          return {
+            ...n,
+            nota_parcial_1: p1,
+            nota_parcial_2: p2,
+            nota_examen_final: ef,
+            nota_final_materia: matterAvg
+          };
+        }
+        return n;
+      });
+      if (migrated) {
+        localStorage.setItem(KEYS.NOTAS, JSON.stringify(notas));
+      }
+    }
+
     const asistencias = localStorage.getItem(KEYS.ASISTENCIAS) ? JSON.parse(localStorage.getItem(KEYS.ASISTENCIAS)!) : ASISTENCIAS_INICIALES;
     const bitacoras = localStorage.getItem(KEYS.BITACORAS) ? JSON.parse(localStorage.getItem(KEYS.BITACORAS)!) : BITACORAS_INICIALES;
     const carreras = localStorage.getItem(KEYS.CARRERAS) ? JSON.parse(localStorage.getItem(KEYS.CARRERAS)!) : CARRERAS_INICIALES;
@@ -173,13 +198,12 @@ export function calculateStudentGPA(estudianteId: string, notas: Nota[]): number
   // Calculate average of the graded subjects
   const sum = studentNotas.reduce((acc, n) => {
     // Formula for final subject matter grade is derived from the average of the 3 exams:
-    const subjectAverage = (n.nota_parcial_1 + n.nota_parcial_2 + n.nota_examen_final) / 3;
+    // Scale the correct questions average (0-10) to 100 points by multiplying by 10
+    const subjectAverage = ((n.nota_parcial_1 + n.nota_parcial_2 + n.nota_examen_final) / 3) * 10;
     return acc + subjectAverage;
   }, 0);
   
-  // Let's divide by total core subjects (there are 4 standard subjects: Computing, Math, English, Physics)
-  // Even if they are not fully tested yet, let's assume average of available graded subjects, or divide by 4.
-  // Averaging available graded subjects is more intuitive for current status tracking!
+  // Average of available graded subjects
   return sum / studentNotas.length;
 }
 

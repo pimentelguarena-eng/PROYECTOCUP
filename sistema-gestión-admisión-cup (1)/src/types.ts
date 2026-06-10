@@ -103,10 +103,10 @@ export interface Nota {
   id: string;
   estudiante_id: string;
   materia_id: number;
-  nota_parcial_1: number;
-  nota_parcial_2: number;
-  nota_examen_final: number;
-  nota_final_materia: number; // Promedio or calculated
+  nota_parcial_1: number; // Examen 1: Correct questions count (0 to 10)
+  nota_parcial_2: number; // Examen 2: Correct questions count (0 to 10)
+  nota_examen_final: number; // Examen 3: Correct questions count (0 to 10)
+  nota_final_materia: number; // Final subject grade scaled to 100 points
 }
 
 export interface HistorialAprobado {

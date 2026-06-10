@@ -84,11 +84,11 @@ export default function DocentePanel({
   }, [selectedGroupId, attendanceDate, grades]);
 
   const handleGradeChange = (studentId: string, examType: 'p1' | 'p2' | 'final', value: string) => {
-    // Force bounds: 0 - 100
+    // Force bounds: 0 - 10 correct questions
     let numeric = parseFloat(value);
     if (isNaN(numeric)) numeric = 0;
     if (numeric < 0) numeric = 0;
-    if (numeric > 100) numeric = 100;
+    if (numeric > 10) numeric = 10;
 
     setEditingGrades(prev => ({
       ...prev,
@@ -103,8 +103,8 @@ export default function DocentePanel({
     const edits = editingGrades[studentId];
     if (!edits || !activeGroup) return;
 
-    // Recalculate average
-    const finalSubjectAvg = parseFloat(((edits.p1 + edits.p2 + edits.final) / 3).toFixed(2));
+    // Recalculate average: (Ex1 + Ex2 + Ex3) / 3 * 10 to scale to 100 points
+    const finalSubjectAvg = parseFloat((((edits.p1 + edits.p2 + edits.final) / 3) * 10).toFixed(2));
 
     const updated = [...grades];
     const index = updated.findIndex(g => g.estudiante_id === studentId && g.materia_id === activeGroup.materia_id);
@@ -130,7 +130,7 @@ export default function DocentePanel({
 
     onUpdateGrades(updated);
     onLogAction(
-      `Docente ${user.nombre_completo} guardó calificaciones para el estudiante ${studentName} en ${activeMateria?.nombre}: [${edits.p1}, ${edits.p2}, ${edits.final}]`,
+      `Docente ${user.nombre_completo} guardó calificaciones para el estudiante ${studentName} en ${activeMateria?.nombre}: [Ex1: ${edits.p1}/10, Ex2: ${edits.p2}/10, Ex3: ${edits.final}/10] - Promedio: ${finalSubjectAvg} Pts.`,
       'MÓDULO EVALUACIÓN'
     );
   };
@@ -268,7 +268,8 @@ export default function DocentePanel({
             <div className="space-y-1">
               <p className="font-bold">Reglas de Negocio:</p>
               <ul className="list-disc list-inside space-y-0.5 text-indigo-800">
-                <li>Solo se toman 3 exámenes por materia.</li>
+                <li>Solo se toman 3 exámenes generales por estudiante.</li>
+                <li>Cada examen evalúa 4 materias con 10 preguntas cada una (total 40 preguntas).</li>
                 <li>Haga clic en "Guardar Notas" para aplicar cambios individuales.</li>
                 <li>Las asistencias se registran instantáneamente por fecha.</li>
               </ul>
@@ -328,10 +329,10 @@ export default function DocentePanel({
                   <thead>
                     <tr className="bg-slate-50/50 border-b-2 border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                       <th className="py-3.5 px-6">Código / Nombre</th>
-                      <th className="py-3.5 px-2 text-center w-[90px]">Parcial 1</th>
-                      <th className="py-3.5 px-2 text-center w-[90px]">Parcial 2</th>
-                      <th className="py-3.5 px-2 text-center w-[90px]">Examen Final</th>
-                      <th className="py-3.5 px-2 text-center">Promedio</th>
+                      <th className="py-3.5 px-2 text-center w-[90px]">Examen 1 (0-10)</th>
+                      <th className="py-3.5 px-2 text-center w-[90px]">Examen 2 (0-10)</th>
+                      <th className="py-3.5 px-2 text-center w-[90px]">Examen 3 (0-10)</th>
+                      <th className="py-3.5 px-2 text-center">Promedio (0-100)</th>
                       <th className="py-3.5 px-4 text-center">Registrar</th>
                       <th className="py-3.5 px-6 text-center border-l-2 border-slate-200 bg-slate-50/30">Asistencia del Día</th>
                     </tr>
@@ -342,7 +343,7 @@ export default function DocentePanel({
                       if (!studentUser) return null;
 
                       const edits = editingGrades[st.usuario_id] || { p1: 0, p2: 0, final: 0 };
-                      const calculatedAverage = (edits.p1 + edits.p2 + edits.final) / 3;
+                      const calculatedAverage = ((edits.p1 + edits.p2 + edits.final) / 3) * 10;
                       const hasPassed = calculatedAverage >= 60;
 
                       // Attend state matching local picker
@@ -358,7 +359,8 @@ export default function DocentePanel({
                             <input
                               type="number"
                               min="0"
-                              max="100"
+                              max="10"
+                              step="1"
                               value={edits.p1}
                               onChange={(e) => handleGradeChange(st.usuario_id, 'p1', e.target.value)}
                               className="w-16 bg-slate-50 border border-slate-200 text-xs text-center font-mono rounded py-1 focus:bg-white"
@@ -368,7 +370,8 @@ export default function DocentePanel({
                             <input
                               type="number"
                               min="0"
-                              max="100"
+                              max="10"
+                              step="1"
                               value={edits.p2}
                               onChange={(e) => handleGradeChange(st.usuario_id, 'p2', e.target.value)}
                               className="w-16 bg-slate-50 border border-slate-200 text-xs text-center font-mono rounded py-1 focus:bg-white"
@@ -378,7 +381,8 @@ export default function DocentePanel({
                             <input
                               type="number"
                               min="0"
-                              max="100"
+                              max="10"
+                              step="1"
                               value={edits.final}
                               onChange={(e) => handleGradeChange(st.usuario_id, 'final', e.target.value)}
                               className="w-16 bg-slate-50 border border-slate-200 text-xs text-center font-mono rounded py-1 focus:bg-white"

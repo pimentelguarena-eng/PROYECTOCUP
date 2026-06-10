@@ -592,54 +592,54 @@ export const GRUPOS_INICIALES: Grupo[] = [
 
 export const NOTAS_INICIALES: Nota[] = [
   // Student 1 (Mateo Sandoval Antelo) - Passed!
-  { id: 'n-1-1', estudiante_id: 'u-est-1', materia_id: 1, nota_parcial_1: 85, nota_parcial_2: 90, nota_examen_final: 95, nota_final_materia: 90 },
-  { id: 'n-1-2', estudiante_id: 'u-est-1', materia_id: 2, nota_parcial_1: 75, nota_parcial_2: 80, nota_examen_final: 85, nota_final_materia: 80 },
-  { id: 'n-1-3', estudiante_id: 'u-est-1', materia_id: 3, nota_parcial_1: 90, nota_parcial_2: 90, nota_examen_final: 90, nota_final_materia: 90 },
-  { id: 'n-1-4', estudiante_id: 'u-est-1', materia_id: 4, nota_parcial_1: 80, nota_parcial_2: 85, nota_examen_final: 87, nota_final_materia: 84 },
+  { id: 'n-1-1', estudiante_id: 'u-est-1', materia_id: 1, nota_parcial_1: 8, nota_parcial_2: 9, nota_examen_final: 10, nota_final_materia: 90 },
+  { id: 'n-1-2', estudiante_id: 'u-est-1', materia_id: 2, nota_parcial_1: 7, nota_parcial_2: 8, nota_examen_final: 9, nota_final_materia: 80 },
+  { id: 'n-1-3', estudiante_id: 'u-est-1', materia_id: 3, nota_parcial_1: 9, nota_parcial_2: 9, nota_examen_final: 9, nota_final_materia: 90 },
+  { id: 'n-1-4', estudiante_id: 'u-est-1', materia_id: 4, nota_parcial_1: 8, nota_parcial_2: 9, nota_examen_final: 9, nota_final_materia: 86.7 },
 
   // Student 2 (Lucia Benavides Roca) - Passed!
-  { id: 'n-2-1', estudiante_id: 'u-est-2', materia_id: 1, nota_parcial_1: 95, nota_parcial_2: 98, nota_examen_final: 100, nota_final_materia: 97.6 },
-  { id: 'n-2-2', estudiante_id: 'u-est-2', materia_id: 2, nota_parcial_1: 65, nota_parcial_2: 70, nota_examen_final: 75, nota_final_materia: 70 },
-  { id: 'n-2-3', estudiante_id: 'u-est-2', materia_id: 3, nota_parcial_1: 80, nota_parcial_2: 85, nota_examen_final: 88, nota_final_materia: 84.3 },
-  { id: 'n-2-4', estudiante_id: 'u-est-2', materia_id: 4, nota_parcial_1: 70, nota_parcial_2: 72, nota_examen_final: 80, nota_final_materia: 74 },
+  { id: 'n-2-1', estudiante_id: 'u-est-2', materia_id: 1, nota_parcial_1: 10, nota_parcial_2: 10, nota_examen_final: 10, nota_final_materia: 100 },
+  { id: 'n-2-2', estudiante_id: 'u-est-2', materia_id: 2, nota_parcial_1: 6, nota_parcial_2: 7, nota_examen_final: 8, nota_final_materia: 70 },
+  { id: 'n-2-3', estudiante_id: 'u-est-2', materia_id: 3, nota_parcial_1: 8, nota_parcial_2: 8, nota_examen_final: 9, nota_final_materia: 83.3 },
+  { id: 'n-2-4', estudiante_id: 'u-est-2', materia_id: 4, nota_parcial_1: 7, nota_parcial_2: 7, nota_examen_final: 8, nota_final_materia: 73.3 },
 
   // Student 3 (Sebastian Justiniano) - Passed!
-  { id: 'n-3-1', estudiante_id: 'u-est-3', materia_id: 1, nota_parcial_1: 65, nota_parcial_2: 70, nota_examen_final: 75, nota_final_materia: 70 },
-  { id: 'n-3-2', estudiante_id: 'u-est-3', materia_id: 2, nota_parcial_1: 60, nota_parcial_2: 65, nota_examen_final: 73, nota_final_materia: 66 },
-  { id: 'n-3-3', estudiante_id: 'u-est-3', materia_id: 3, nota_parcial_1: 58, nota_parcial_2: 62, nota_examen_final: 68, nota_final_materia: 62.6 },
-  { id: 'n-3-4', estudiante_id: 'u-est-3', materia_id: 4, nota_parcial_1: 55, nota_parcial_2: 60, nota_examen_final: 65, nota_final_materia: 60 },
+  { id: 'n-3-1', estudiante_id: 'u-est-3', materia_id: 1, nota_parcial_1: 6, nota_parcial_2: 7, nota_examen_final: 8, nota_final_materia: 70 },
+  { id: 'n-3-2', estudiante_id: 'u-est-3', materia_id: 2, nota_parcial_1: 6, nota_parcial_2: 6, nota_examen_final: 7, nota_final_materia: 63.3 },
+  { id: 'n-3-3', estudiante_id: 'u-est-3', materia_id: 3, nota_parcial_1: 6, nota_parcial_2: 6, nota_examen_final: 7, nota_final_materia: 63.3 },
+  { id: 'n-3-4', estudiante_id: 'u-est-3', materia_id: 4, nota_parcial_1: 5, nota_parcial_2: 6, nota_examen_final: 7, nota_final_materia: 60 },
 
   // Student 4 (Valeria Rojas) - Passed!
-  { id: 'n-4-1', estudiante_id: 'u-est-4', materia_id: 1, nota_parcial_1: 88, nota_parcial_2: 85, nota_examen_final: 90, nota_final_materia: 87.6 },
-  { id: 'n-4-2', estudiante_id: 'u-est-4', materia_id: 2, nota_parcial_1: 75, nota_parcial_2: 78, nota_examen_final: 80, nota_final_materia: 77.6 },
-  { id: 'n-4-3', estudiante_id: 'u-est-4', materia_id: 4, nota_parcial_1: 70, nota_parcial_2: 72, nota_examen_final: 76, nota_final_materia: 72.6 },
+  { id: 'n-4-1', estudiante_id: 'u-est-4', materia_id: 1, nota_parcial_1: 9, nota_parcial_2: 8, nota_examen_final: 9, nota_final_materia: 86.7 },
+  { id: 'n-4-2', estudiante_id: 'u-est-4', materia_id: 2, nota_parcial_1: 7, nota_parcial_2: 8, nota_examen_final: 8, nota_final_materia: 76.7 },
+  { id: 'n-4-3', estudiante_id: 'u-est-4', materia_id: 4, nota_parcial_1: 7, nota_parcial_2: 7, nota_examen_final: 8, nota_final_materia: 73.3 },
 
   // Student 5 (Carlos Eduardo Barba) - Passed!
-  { id: 'n-5-1', estudiante_id: 'u-est-5', materia_id: 1, nota_parcial_1: 60, nota_parcial_2: 62, nota_examen_final: 65, nota_final_materia: 62.3 },
-  { id: 'n-5-2', estudiante_id: 'u-est-5', materia_id: 2, nota_parcial_1: 61, nota_parcial_2: 63, nota_examen_final: 66, nota_final_materia: 63.3 },
-  { id: 'n-5-3', estudiante_id: 'u-est-5', materia_id: 3, nota_parcial_1: 58, nota_parcial_2: 64, nota_examen_final: 67, nota_final_materia: 63 },
-  { id: 'n-5-4', estudiante_id: 'u-est-5', materia_id: 4, nota_parcial_1: 60, nota_parcial_2: 60, nota_examen_final: 60, nota_final_materia: 60 },
+  { id: 'n-5-1', estudiante_id: 'u-est-5', materia_id: 1, nota_parcial_1: 6, nota_parcial_2: 6, nota_examen_final: 7, nota_final_materia: 63.3 },
+  { id: 'n-5-2', estudiante_id: 'u-est-5', materia_id: 2, nota_parcial_1: 6, nota_parcial_2: 6, nota_examen_final: 7, nota_final_materia: 63.3 },
+  { id: 'n-5-3', estudiante_id: 'u-est-5', materia_id: 3, nota_parcial_1: 6, nota_parcial_2: 6, nota_examen_final: 7, nota_final_materia: 63.3 },
+  { id: 'n-5-4', estudiante_id: 'u-est-5', materia_id: 4, nota_parcial_1: 6, nota_parcial_2: 6, nota_examen_final: 6, nota_final_materia: 60 },
 
   // Student 6 (Aracely Suarez) - Failed (Reprobado)!
-  { id: 'n-6-1', estudiante_id: 'u-est-6', materia_id: 1, nota_parcial_1: 40, nota_parcial_2: 45, nota_examen_final: 50, nota_final_materia: 45 },
-  { id: 'n-6-2', estudiante_id: 'u-est-6', materia_id: 2, nota_parcial_1: 30, nota_parcial_2: 35, nota_examen_final: 42, nota_final_materia: 35.6 },
-  { id: 'n-6-3', estudiante_id: 'u-est-6', materia_id: 3, nota_parcial_1: 50, nota_parcial_2: 52, nota_examen_final: 55, nota_final_materia: 52.3 },
-  { id: 'n-6-4', estudiante_id: 'u-est-6', materia_id: 4, nota_parcial_1: 38, nota_parcial_2: 40, nota_examen_final: 41, nota_final_materia: 39.6 },
+  { id: 'n-6-1', estudiante_id: 'u-est-6', materia_id: 1, nota_parcial_1: 4, nota_parcial_2: 4, nota_examen_final: 5, nota_final_materia: 43.3 },
+  { id: 'n-6-2', estudiante_id: 'u-est-6', materia_id: 2, nota_parcial_1: 3, nota_parcial_2: 3, nota_examen_final: 4, nota_final_materia: 33.3 },
+  { id: 'n-6-3', estudiante_id: 'u-est-6', materia_id: 3, nota_parcial_1: 5, nota_parcial_2: 5, nota_examen_final: 6, nota_final_materia: 53.3 },
+  { id: 'n-6-4', estudiante_id: 'u-est-6', materia_id: 4, nota_parcial_1: 4, nota_parcial_2: 4, nota_examen_final: 4, nota_final_materia: 40 },
 
   // Student 7 (Diego Armando Cardona) - Failed (Reprobado)!
-  { id: 'n-7-1', estudiante_id: 'u-est-7', materia_id: 1, nota_parcial_1: 58, nota_parcial_2: 55, nota_examen_final: 60, nota_final_materia: 57.6 },
-  { id: 'n-7-2', estudiante_id: 'u-est-7', materia_id: 2, nota_parcial_1: 45, nota_parcial_2: 48, nota_examen_final: 50, nota_final_materia: 47.6 },
-  { id: 'n-7-4', estudiante_id: 'u-est-7', materia_id: 4, nota_parcial_1: 51, nota_parcial_2: 53, nota_examen_final: 55, nota_final_materia: 53 },
+  { id: 'n-7-1', estudiante_id: 'u-est-7', materia_id: 1, nota_parcial_1: 6, nota_parcial_2: 5, nota_examen_final: 6, nota_final_materia: 56.7 },
+  { id: 'n-7-2', estudiante_id: 'u-est-7', materia_id: 2, nota_parcial_1: 4, nota_parcial_2: 5, nota_examen_final: 5, nota_final_materia: 46.7 },
+  { id: 'n-7-4', estudiante_id: 'u-est-7', materia_id: 4, nota_parcial_1: 5, nota_parcial_2: 5, nota_examen_final: 6, nota_final_materia: 53.3 },
 
   // Student 8 (Camila Villarroel) - Partially graded (Inscrito status)
-  { id: 'n-8-1', estudiante_id: 'u-est-8', materia_id: 1, nota_parcial_1: 70, nota_parcial_2: 0, nota_examen_final: 0, nota_final_materia: 23.3 },
-  { id: 'n-8-2', estudiante_id: 'u-est-8', materia_id: 2, nota_parcial_1: 65, nota_parcial_2: 0, nota_examen_final: 0, nota_final_materia: 21.6 },
+  { id: 'n-8-1', estudiante_id: 'u-est-8', materia_id: 1, nota_parcial_1: 7, nota_parcial_2: 0, nota_examen_final: 0, nota_final_materia: 23.3 },
+  { id: 'n-8-2', estudiante_id: 'u-est-8', materia_id: 2, nota_parcial_1: 6, nota_parcial_2: 0, nota_examen_final: 0, nota_final_materia: 20 },
 
   // Student 9 (Jorge Hugo Ortiz) - Partially graded (Inscrito)
-  { id: 'n-9-1', estudiante_id: 'u-est-9', materia_id: 1, nota_parcial_1: 62, nota_parcial_2: 55, nota_examen_final: 0, nota_final_materia: 39 },
+  { id: 'n-9-1', estudiante_id: 'u-est-9', materia_id: 1, nota_parcial_1: 6, nota_parcial_2: 5, nota_examen_final: 0, nota_final_materia: 36.7 },
 
   // Student 10 (Maria Rene Salvatierra) - Partially graded (Inscrito)
-  { id: 'n-10-1', estudiante_id: 'u-est-10', materia_id: 2, nota_parcial_1: 81, nota_parcial_2: 78, nota_examen_final: 0, nota_final_materia: 53 },
+  { id: 'n-10-1', estudiante_id: 'u-est-10', materia_id: 2, nota_parcial_1: 8, nota_parcial_2: 8, nota_examen_final: 0, nota_final_materia: 53.3 },
 ];
 
 export const ASISTENCIAS_INICIALES: Asistencia[] = [

@@ -184,10 +184,10 @@ class DatabaseSeeder extends Seeder
             'id' => 1,
             'estudiante_id' => 3,
             'materia_id' => 1,
-            'nota_parcial_1' => 85.00,
-            'nota_parcial_2' => 90.00,
-            'nota_examen_final' => 88.00,
-            'nota_final_materia' => 88.00
+            'nota_parcial_1' => 8.5,
+            'nota_parcial_2' => 9.0,
+            'nota_examen_final' => 8.8,
+            'nota_final_materia' => 87.67
         ]);
 
         // ----------------------------------------------------------------------------
