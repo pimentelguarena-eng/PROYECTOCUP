@@ -170,6 +170,10 @@ class DatabaseSeeder extends Seeder
             'materia_id' => 1,
             'docente_id' => 2,
             'turno' => 'Mañana',
+            'modulo' => '236',
+            'aula' => '15',
+            'hora_inicio' => '07:00',
+            'hora_fin' => '08:00',
             'cupo_maximo' => 70
         ]);
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { loadDatabase, saveDatabase, getEnforcedAdmissions, logAction, DatabaseState } from './dataStore';
-import { Usuario, EstudianteDetalle, Pago, Nota, Asistencia, Rol, Carrera, Materia } from './types';
+import { Usuario, EstudianteDetalle, Pago, Nota, Asistencia, Rol, Carrera, Materia, Grupo } from './types';
+import { LaravelApiClient } from './lib/laravelApi';
 import AdminPanel from './components/AdminPanel';
 import DocentePanel from './components/DocentePanel';
 import EstudiantePanel from './components/EstudiantePanel';
@@ -24,7 +25,7 @@ import {
 
 export default function App() {
   const [db, setDb] = useState<DatabaseState>(() => loadDatabase());
-  
+
   // Real Logged-in session state with LocalStorage persistence
   const [sessionUser, setSessionUser] = useState<Usuario | null>(() => {
     try {
@@ -102,21 +103,73 @@ export default function App() {
       if (newUser.rol === Rol.Estudiante && customDetails?.studentDetail) {
         // Add student details
         updatedEstudiantes.push(customDetails.studentDetail);
-        
+
         // Add payment entry
         if (customDetails.initialPayment) {
           updatedPayments.push(customDetails.initialPayment);
         }
 
-        // Auto-enroll the new student in standard courses/groups for all 4 subjects
-        updatedGroups = prev.grupos.map(g => {
-          if (g.estudiantes_ids.length < g.cupo_maximo) {
-            return {
-              ...g,
-              estudiantes_ids: [...g.estudiantes_ids, newUser.id]
+        // Auto-enroll the new student in standard courses/groups for all 4 subjects matching their shift
+        const preferredTurno = customDetails.studentDetail.turno_preferido;
+        const shiftPrefix = preferredTurno === 'Mañana' ? 'M' : preferredTurno === 'Tarde' ? 'T' : 'N';
+        
+        prev.materias.forEach(materia => {
+          // Find existing groups for this matter and this shift
+          const shiftGroups = updatedGroups.filter(g =>
+            g.materia_id === materia.id &&
+            g.turno === preferredTurno
+          ).sort((a, b) => {
+            const numA = parseInt(a.sigla.replace(/[^\d]/g, '') || '0');
+            const numB = parseInt(b.sigla.replace(/[^\d]/g, '') || '0');
+            return numA - numB;
+          });
+
+          let targetGroup = shiftGroups.find(g => g.estudiantes_ids.length < g.cupo_maximo);
+
+          if (targetGroup) {
+            updatedGroups = updatedGroups.map(g => {
+              if (g.id === targetGroup!.id) {
+                return { ...g, estudiantes_ids: [...g.estudiantes_ids, newUser.id] };
+              }
+              return g;
+            });
+          } else {
+            // Create new group if none available
+            const nextNum = shiftGroups.length + 1;
+            const newGroupId = `g-${materia.id}-${shiftPrefix.toLowerCase()}-${nextNum}-${Date.now()}`;
+            
+            // Fixed mappings per subject as requested
+            const subjectLocations: Record<number, { mod: string, aula: string }> = {
+              1: { mod: '236', aula: '12' }, // Computación
+              2: { mod: '225', aula: '17' }, // Matemáticas
+              3: { mod: '227', aula: '24' }, // Inglés
+              4: { mod: '228', aula: '31' }  // Física
             };
+            const loc = subjectLocations[materia.id] || { mod: '236', aula: '10' };
+            
+            const slots = {
+              'Mañana': ['07:00', '08:00', '09:00', '10:00'],
+              'Tarde': ['13:00', '14:00', '15:00', '16:00'],
+              'Noche': ['18:00', '19:00', '20:00', '21:00'],
+            };
+            const horaInicio = slots[preferredTurno][(materia.id - 1) % 4];
+            const horaFin = `${(parseInt(horaInicio.split(':')[0]) + 1).toString().padStart(2, '0')}:00`;
+
+            const newGroup: Grupo = {
+              id: newGroupId,
+              sigla: `Grupo-${shiftPrefix}${nextNum}`,
+              materia_id: materia.id,
+              docente_id: null,
+              turno: preferredTurno,
+              modulo: loc.mod,
+              aula: loc.aula,
+              hora_inicio: horaInicio,
+              hora_fin: horaFin,
+              cupo_maximo: 70,
+              estudiantes_ids: [newUser.id]
+            };
+            updatedGroups.push(newGroup);
           }
-          return g;
         });
       } else if (newUser.rol === Rol.Docente && customDetails?.docenteDetail) {
         updatedDocentes.push(customDetails.docenteDetail);
@@ -170,7 +223,7 @@ export default function App() {
         if (p.id === pagoId) {
           const matchEst = prev.estudiantes.find(e => e.usuario_id === p.estudiante_id);
           const matchUser = prev.usuarios.find(u => u.id === p.estudiante_id);
-          
+
           return {
             ...p,
             estado_pago: 'Pagado' as const,
@@ -216,7 +269,7 @@ export default function App() {
       // Find or create payment node
       const updatedPayments = [...prev.pagos];
       const index = updatedPayments.findIndex(p => p.estudiante_id === activeUser.id);
-      
+
       const newPago: Pago = {
         id: index >= 0 ? updatedPayments[index].id : `p-${Date.now()}`,
         estudiante_id: activeUser.id,
@@ -317,16 +370,73 @@ export default function App() {
       };
       const updatedPayments = [...prev.pagos, newPago];
 
-      // Add to group default for mathematics or computer group 1
-      const updatedGroups = prev.grupos.map((g, index) => {
-        // Automatically put new students into active groups so they get list entries
-        if (g.sigla === 'Grupo 1') {
-          return {
-            ...g,
-            estudiantes_ids: [...g.estudiantes_ids, newUser.id]
+      // Dynamic Group Assignment Logic (Rule: Max 70 students per group, auto-create N groups)
+      let currentGroups = [...prev.grupos];
+      const shiftPrefix = newDetail.turno_preferido === 'Mañana' ? 'M' :
+        newDetail.turno_preferido === 'Tarde' ? 'T' : 'N';
+
+      prev.materias.forEach(materia => {
+        // Find existing groups for this matter and this shift
+        const shiftGroups = currentGroups.filter(g =>
+          g.materia_id === materia.id &&
+          g.turno === newDetail.turno_preferido
+        ).sort((a, b) => {
+          // Sort by number in sigla to find the last one (e.g. M1, M2...)
+          const numA = parseInt(a.sigla.replace(/[^\d]/g, '') || '0');
+          const numB = parseInt(b.sigla.replace(/[^\d]/g, '') || '0');
+          return numA - numB;
+        });
+
+        let targetGroup = shiftGroups.find(g => g.estudiantes_ids.length < 70);
+
+        if (targetGroup) {
+          // Add student to the group that has space
+          currentGroups = currentGroups.map(g => {
+            if (g.id === targetGroup!.id) {
+              return {
+                ...g,
+                estudiantes_ids: [...g.estudiantes_ids, newUser.id]
+              };
+            }
+            return g;
+          });
+        } else {
+          // All existing groups full or none exist for this shift: Create a new one!
+          const nextNum = shiftGroups.length + 1;
+          const newGroupId = `g-${materia.id}-${shiftPrefix.toLowerCase()}-${nextNum}-${Date.now()}`;
+          
+          // Fixed mappings per subject as requested
+          const subjectLocations: Record<number, { mod: string, aula: string }> = {
+            1: { mod: '236', aula: '12' }, // Computación
+            2: { mod: '225', aula: '17' }, // Matemáticas
+            3: { mod: '227', aula: '24' }, // Inglés
+            4: { mod: '228', aula: '31' }  // Física
           };
+          const loc = subjectLocations[materia.id] || { mod: '236', aula: '10' };
+          
+          const slots = {
+            'Mañana': ['07:00', '08:00', '09:00', '10:00'],
+            'Tarde': ['13:00', '14:00', '15:00', '16:00'],
+            'Noche': ['18:00', '19:00', '20:00', '21:00'],
+          };
+          const horaInicio = slots[newDetail.turno_preferido][(materia.id - 1) % 4];
+          const horaFin = `${(parseInt(horaInicio.split(':')[0]) + 1).toString().padStart(2, '0')}:00`;
+
+          const newGroup: Grupo = {
+            id: newGroupId,
+            sigla: `Grupo-${shiftPrefix}${nextNum}`, // e.g. Grupo-M1, Grupo-T2
+            materia_id: materia.id,
+            docente_id: null, // Initially unassigned
+            turno: newDetail.turno_preferido,
+            modulo: loc.mod,
+            aula: loc.aula,
+            hora_inicio: horaInicio,
+            hora_fin: horaFin,
+            cupo_maximo: 70,
+            estudiantes_ids: [newUser.id]
+          };
+          currentGroups.push(newGroup);
         }
-        return g;
       });
 
       return {
@@ -334,7 +444,7 @@ export default function App() {
         usuarios: updatedUsers,
         estudiantes: updatedEstudiantes,
         pagos: updatedPayments,
-        grupos: updatedGroups
+        grupos: currentGroups
       };
     });
   };
@@ -380,7 +490,7 @@ export default function App() {
           }));
 
           const deletedUser = prev.usuarios.find(u => u.id === studentId);
-          
+
           const updatedState = {
             ...prev,
             usuarios: updatedUsers,
@@ -409,16 +519,75 @@ export default function App() {
       let bUsers = [...prev.usuarios];
       let bDetails = [...prev.estudiantes];
       let bPayments = [...prev.pagos];
-      let bGroups = prev.grupos.map(g => ({ ...g }));
+      let bGroups = [...prev.grupos];
 
       newStudents.forEach(item => {
         bUsers.push(item.user);
         bDetails.push(item.detail);
         bPayments.push(item.payment);
-        
-        // Push student user to all existing group limits
-        bGroups.forEach(g => {
-          g.estudiantes_ids.push(item.user.id);
+
+        const shiftPrefix = item.detail.turno_preferido === 'Mañana' ? 'M' :
+          item.detail.turno_preferido === 'Tarde' ? 'T' : 'N';
+
+        prev.materias.forEach(materia => {
+          // Find existing groups for this matter and this shift within the currently accumulating batch groups
+          const shiftGroups = bGroups.filter(g =>
+            g.materia_id === materia.id &&
+            g.turno === item.detail.turno_preferido
+          ).sort((a, b) => {
+            const numA = parseInt(a.sigla.replace(/[^\d]/g, '') || '0');
+            const numB = parseInt(b.sigla.replace(/[^\d]/g, '') || '0');
+            return numA - numB;
+          });
+
+          let targetGroup = shiftGroups.find(g => g.estudiantes_ids.length < 70);
+
+          if (targetGroup) {
+            bGroups = bGroups.map(g => {
+              if (g.id === targetGroup!.id) {
+                return {
+                  ...g,
+                  estudiantes_ids: [...g.estudiantes_ids, item.user.id]
+                };
+              }
+              return g;
+            });
+          } else {
+            const nextNum = shiftGroups.length + 1;
+            const newGroupId = `g-${materia.id}-${shiftPrefix.toLowerCase()}-${nextNum}-${Date.now()}-${Math.random()}`;
+            
+            // Fixed mappings per subject as requested
+            const subjectLocations: Record<number, { mod: string, aula: string }> = {
+              1: { mod: '236', aula: '12' }, // Computación
+              2: { mod: '225', aula: '17' }, // Matemáticas
+              3: { mod: '227', aula: '24' }, // Inglés
+              4: { mod: '228', aula: '31' }  // Física
+            };
+            const loc = subjectLocations[materia.id] || { mod: '236', aula: '10' };
+            
+            const slots = {
+              'Mañana': ['07:00', '08:00', '09:00', '10:00'],
+              'Tarde': ['13:00', '14:00', '15:00', '16:00'],
+              'Noche': ['18:00', '19:00', '20:00', '21:00'],
+            };
+            const horaInicio = slots[item.detail.turno_preferido][(materia.id - 1) % 4];
+            const horaFin = `${(parseInt(horaInicio.split(':')[0]) + 1).toString().padStart(2, '0')}:00`;
+
+            const newGroup: Grupo = {
+              id: newGroupId,
+              sigla: `Grupo-${shiftPrefix}${nextNum}`,
+              materia_id: materia.id,
+              docente_id: null,
+              turno: item.detail.turno_preferido,
+              modulo: loc.mod,
+              aula: loc.aula,
+              hora_inicio: horaInicio,
+              hora_fin: horaFin,
+              cupo_maximo: 70,
+              estudiantes_ids: [item.user.id]
+            };
+            bGroups.push(newGroup);
+          }
         });
       });
 
@@ -446,12 +615,57 @@ export default function App() {
     );
   };
 
+  // Business Action: Teacher saves student grades
+  const handleSaveStudentGrade = async (studentId: string, materiaId: number, p1: number, p2: number, ef: number) => {
+    // Attempt API save
+    const response = await LaravelApiClient.saveStudentGrades(studentId, materiaId, p1, p2, ef);
+    
+    // Update local state (Fallback or Sync)
+    setDb(prev => {
+      const finalSubjectAvg = parseFloat((((p1 + p2 + ef) / 3) * 10).toFixed(2));
+      const updatedGrades = [...prev.notas];
+      const index = updatedGrades.findIndex(g => g.estudiante_id === studentId && g.materia_id === materiaId);
+      
+      const newGradeNode: Nota = {
+        id: index >= 0 ? updatedGrades[index].id : `n-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        estudiante_id: studentId,
+        materia_id: materiaId,
+        nota_parcial_1: p1,
+        nota_parcial_2: p2,
+        nota_examen_final: ef,
+        nota_final_materia: finalSubjectAvg
+      };
+
+      if (index >= 0) {
+        updatedGrades[index] = newGradeNode;
+      } else {
+        updatedGrades.push(newGradeNode);
+      }
+
+      const studentUser = prev.usuarios.find(u => u.id === studentId);
+      const mat = prev.materias.find(m => m.id === materiaId);
+
+      const updatedState = { ...prev, notas: updatedGrades };
+      return logAction(
+        updatedState,
+        activeUser.id,
+        activeUser.nombre_completo,
+        `Se registraron calificaciones para ${studentUser?.nombre_completo || 'Estudiante'} en ${mat?.nombre || 'Materia'}: [P1: ${p1}, P2: ${p2}, EF: ${ef}]`,
+        'MÓDULO EVALUACIÓN'
+      );
+    });
+
+    if (response && response.success) {
+      triggerAlert('Calificaciones sincronizadas con éxito en el servidor PostgreSQL.', 'Registro Exitoso');
+    }
+  };
+
   if (sessionUser === null) {
     return (
-      <AuthScreen 
-        usuarios={db.usuarios} 
+      <AuthScreen
+        usuarios={db.usuarios}
         estudiantes={db.estudiantes}
-        carreras={db.carreras} 
+        carreras={db.carreras}
         periodoActivo={db.periodoActivo || '2026/1'}
         onLogin={(usr) => {
           setSessionUser(usr);
@@ -469,8 +683,8 @@ export default function App() {
           } else {
             setActiveTab('dashboard');
           }
-        }} 
-        onRegister={handleRegisterUser} 
+        }}
+        onRegister={handleRegisterUser}
         triggerAlert={triggerAlert}
         triggerConfirm={triggerConfirm}
       />
@@ -479,7 +693,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased flex flex-col justify-between grid-lines relative overflow-hidden">
-      
+
       {/* Giant decoration text from the design theme */}
       <div className="absolute top-12 right-12 text-giant text-slate-200/50 pointer-events-none select-none z-0 tracking-tighter uppercase font-black font-display">
         ADMISIÓN
@@ -488,7 +702,7 @@ export default function App() {
       {/* Main system header */}
       <header className="bg-white/90 backdrop-blur-md border-b-2 border-slate-200 py-5 px-6 md:px-8 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          
+
           {/* Institution Header Branding */}
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-white text-xl shadow-lg border-2 border-slate-700">
@@ -538,10 +752,10 @@ export default function App() {
 
       {/* Primary Container layout Grid */}
       <main className="max-w-7xl mx-auto px-4 md:px-8 py-8 flex-1 w-full grid grid-cols-1 xl:grid-cols-4 gap-8 z-10 relative">
-        
+
         {/* LEFT COLUMN: Main Menu items / UI Navigation and voice module */}
         <div className="xl:col-span-1 space-y-6">
-          
+
           {/* Main Impersonated session details */}
           <div className="bg-white rounded-2xl shadow-md border-2 border-slate-200 p-6 space-y-3 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-2 h-full bg-blue-600"></div>
@@ -558,16 +772,15 @@ export default function App() {
           {/* Tab Selection Menu list styled with high contrast bold menu triggers */}
           <div className="bg-white rounded-2xl shadow-md border-2 border-slate-200 p-4 space-y-1.5">
             <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 pb-2.5 border-b border-slate-100">Secciones Principales</span>
-            
+
             {activeUser.rol === Rol.Administrador && (
               <div className="space-y-1 pt-2">
                 <button
                   onClick={() => setActiveTab('dashboard')}
-                  className={`w-full text-left cursor-pointer px-4 py-3 rounded-xl text-xs font-sans font-black transition-all flex items-center gap-3 ${
-                    activeTab === 'dashboard'
-                      ? 'bg-blue-600 text-white shadow-lg border border-blue-700'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
-                  }`}
+                  className={`w-full text-left cursor-pointer px-4 py-3 rounded-xl text-xs font-sans font-black transition-all flex items-center gap-3 ${activeTab === 'dashboard'
+                    ? 'bg-blue-600 text-white shadow-lg border border-blue-700'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
+                    }`}
                 >
                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-all ${activeTab === 'dashboard' ? 'bg-white scale-125' : 'border-2 border-slate-400'}`}></span>
                   PANEL DE ADMISIÓN
@@ -579,11 +792,10 @@ export default function App() {
               <div className="space-y-1 pt-2">
                 <button
                   onClick={() => setActiveTab('docente')}
-                  className={`w-full text-left cursor-pointer px-4 py-3 rounded-xl text-xs font-sans font-black transition-all flex items-center gap-3 ${
-                    activeTab === 'docente'
-                      ? 'bg-blue-600 text-white shadow-lg border border-blue-700'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
-                  }`}
+                  className={`w-full text-left cursor-pointer px-4 py-3 rounded-xl text-xs font-sans font-black transition-all flex items-center gap-3 ${activeTab === 'docente'
+                    ? 'bg-blue-600 text-white shadow-lg border border-blue-700'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
+                    }`}
                 >
                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-all ${activeTab === 'docente' ? 'bg-white scale-125' : 'border-2 border-slate-400'}`}></span>
                   CÁTEDRA RENDIMIENTO
@@ -595,29 +807,27 @@ export default function App() {
               <div className="space-y-1 pt-2">
                 <button
                   onClick={() => setActiveTab('estudiante')}
-                  className={`w-full text-left cursor-pointer px-4 py-3 rounded-xl text-xs font-sans font-black transition-all flex items-center gap-3 ${
-                    activeTab === 'estudiante'
-                      ? 'bg-blue-600 text-white shadow-lg border border-blue-700'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
-                  }`}
+                  className={`w-full text-left cursor-pointer px-4 py-3 rounded-xl text-xs font-sans font-black transition-all flex items-center gap-3 ${activeTab === 'estudiante'
+                    ? 'bg-blue-600 text-white shadow-lg border border-blue-700'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
+                    }`}
                 >
                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-all ${activeTab === 'estudiante' ? 'bg-white scale-125' : 'border-2 border-slate-400'}`}></span>
                   CARPETA POSTULANTE
                 </button>
               </div>
             )}
-            
+
             {/* Direct reports access for docents and administrators as requested */}
             {(activeUser.rol === Rol.Docente || activeUser.rol === Rol.Administrador) && (
               <div className="border-t border-slate-100 mt-2.5 pt-2.5 space-y-1 block">
                 <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest px-3 pb-1">Reportes & Listas</span>
                 <button
                   onClick={() => setActiveTab('reportes')}
-                  className={`w-full text-left cursor-pointer px-4 py-3 rounded-xl text-xs font-sans font-black transition-all flex items-center gap-3 ${
-                    activeTab === 'reportes'
-                      ? 'bg-blue-600 text-white shadow-lg border border-blue-700'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
-                  }`}
+                  className={`w-full text-left cursor-pointer px-4 py-3 rounded-xl text-xs font-sans font-black transition-all flex items-center gap-3 ${activeTab === 'reportes'
+                    ? 'bg-blue-600 text-white shadow-lg border border-blue-700'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 border border-transparent'
+                    }`}
                 >
                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-all ${activeTab === 'reportes' ? 'bg-white scale-125' : 'border-2 border-slate-400'}`}></span>
                   NOTAS Y APROBADOS
@@ -630,7 +840,7 @@ export default function App() {
 
         {/* RIGHT AREA: Active workspace portal */}
         <div className="xl:col-span-3 space-y-6">
-          
+
           {/* VIEW CONTROLS ROUTER */}
 
           {activeTab === 'dashboard' && activeUser.rol === Rol.Administrador && (
@@ -675,6 +885,7 @@ export default function App() {
               attendances={db.asistencias}
               materias={db.materias}
               onUpdateGrades={(updated) => setDb(prev => ({ ...prev, notas: updated }))}
+              onSaveGrade={handleSaveStudentGrade}
               onUpdateAttendance={(updated) => setDb(prev => ({ ...prev, asistencias: updated }))}
               onLogAction={handleLogAction}
               triggerAlert={triggerAlert}
@@ -738,7 +949,7 @@ export default function App() {
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white border-4 border-slate-900 rounded-2xl max-w-md w-full shadow-2xl p-6 space-y-4 relative overflow-hidden text-left">
             <div className="absolute top-0 left-0 right-0 h-1.5 bg-blue-650"></div>
-            
+
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-800 border-2 border-slate-900">
                 <Info className="w-5 h-5 text-blue-600" />

@@ -24,6 +24,7 @@ export interface Bitacora {
   modulo: string;
   ip_address: string;
   created_at: string;
+  usuario?: Usuario;
 }
 
 export interface Carrera {
@@ -87,6 +88,10 @@ export interface Grupo {
   materia_id: number;
   docente_id: string | null; // Docente user_id
   turno: 'Mañana' | 'Tarde' | 'Noche';
+  modulo: string; // e.g., '227', '236'
+  aula: string; // e.g., '10' to '40'
+  hora_inicio: string; // e.g., '07:00'
+  hora_fin: string; // e.g., '08:00'
   cupo_maximo: number; // Max 70 or 80
   estudiantes_ids: string[]; // References estudiantes (usuario_id)
 }

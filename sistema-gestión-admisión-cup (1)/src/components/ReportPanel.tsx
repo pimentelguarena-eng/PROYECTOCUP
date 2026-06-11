@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Usuario, EstudianteDetalle, Pago, Grupo, Nota, DocenteDetalle, Carrera, Materia } from '../types';
 import { getEnforcedAdmissions } from '../dataStore';
-import { BarChart, BookOpen, User, Users, FileText, CheckCircle, XCircle, Printer, Download } from 'lucide-react';
+import { BarChart, BookOpen, User, Users, FileText, CheckCircle, XCircle, Printer, Download, Building } from 'lucide-react';
 
 interface ReportPanelProps {
   usuarios: Usuario[];
@@ -98,8 +98,69 @@ export default function ReportPanel({
     window.print();
   };
 
+  // Metrics for mandatory reporting
+  const totalInscritos = estudiantes.length;
+  const groupsCount = grupos.length;
+  const overallAvg = admissionResults.length > 0 
+    ? admissionResults.reduce((acc, r) => acc + r.gpa, 0) / admissionResults.length 
+    : 0;
+
+  const shiftStats = ['Mañana', 'Tarde', 'Noche'].map(shift => {
+    const shiftGroups = grupos.filter(g => g.turno === shift);
+    return {
+      turno: shift,
+      count: shiftGroups.length
+    };
+  });
+
   return (
     <div id="reportes-portal" className="space-y-8">
+      
+      {/* Upper Global Metrics Overview (Mandatory Params) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-slate-900 rounded-2xl p-6 text-white shadow-xl border-2 border-slate-800 relative overflow-hidden group">
+          <div className="relative z-10">
+            <span className="text-[10px] text-blue-400 font-black uppercase tracking-widest block mb-1">Promedios Generales (CUP)</span>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-4xl font-mono font-black">{overallAvg.toFixed(2)}</h3>
+              <span className="text-xs text-slate-400">pts / 100</span>
+            </div>
+            <p className="text-[10px] text-slate-500 font-bold uppercase mt-2">Media académica global de la facultad</p>
+          </div>
+          <BarChart className="absolute -right-4 -bottom-4 w-32 h-32 text-white/5 rotate-12 group-hover:scale-110 transition-transform" />
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-md border-2 border-slate-200 relative overflow-hidden group">
+          <div className="relative z-10">
+            <span className="text-[10px] text-indigo-600 font-black uppercase tracking-widest block mb-1">Infraestructura CUP</span>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-4xl font-mono font-black text-slate-900">{groupsCount}</h3>
+              <span className="text-xs text-slate-400 font-bold uppercase">Grupos Habilitados</span>
+            </div>
+            <div className="flex gap-3 mt-2">
+              {shiftStats.map(s => (
+                <div key={s.turno} className="flex flex-col">
+                  <span className="text-[9px] text-slate-400 font-black uppercase">{s.turno}</span>
+                  <span className="text-xs font-mono font-black text-indigo-600">{s.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <Building className="absolute -right-4 -bottom-4 w-32 h-32 text-slate-50 rotate-12 group-hover:scale-110 transition-transform" />
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-md border-2 border-slate-200 relative overflow-hidden group">
+          <div className="relative z-10">
+            <span className="text-[10px] text-emerald-600 font-black uppercase tracking-widest block mb-1">Capacidad Logística</span>
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-4xl font-mono font-black text-slate-900">{totalInscritos}</h3>
+              <span className="text-xs text-slate-400 font-bold uppercase">Inscritos Totales</span>
+            </div>
+            <p className="text-[10px] text-slate-500 font-bold uppercase mt-2">Distribución dinámica en PostgreSQL</p>
+          </div>
+          <Users className="absolute -right-4 -bottom-4 w-32 h-32 text-slate-50 rotate-12 group-hover:scale-110 transition-transform" />
+        </div>
+      </div>
       
       {/* Report Header Selector */}
       <div className="bg-white rounded-2xl shadow-md border-2 border-slate-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
@@ -181,6 +242,17 @@ export default function ReportPanel({
           }`}
         >
           Aprobación por Grupo
+        </button>
+
+        <button
+          onClick={() => setReportFilter('docentes')}
+          className={`cursor-pointer px-5 py-2.5 rounded-xl text-xs font-sans font-black transition-all uppercase tracking-wider ${
+            reportFilter === 'docentes'
+              ? 'bg-slate-900 text-white shadow-md'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/75'
+          }`}
+        >
+          Docentes por Grupo
         </button>
       </div>
 
@@ -341,6 +413,71 @@ export default function ReportPanel({
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Docentes por grupo */}
+      {reportFilter === 'docentes' && (
+        <div className="bg-white rounded-2xl shadow-md border-2 border-slate-200 overflow-hidden">
+          <div className="p-5 bg-slate-50 border-b-2 border-slate-200 flex justify-between items-center">
+            <div>
+              <h3 className="font-sans font-black text-slate-900 text-sm uppercase tracking-wide">
+                Distribución de Personal Docente por Aula
+              </h3>
+              <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-0.5">Control de supervisión académica y asignación de cátedra.</p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto text-[13px]">
+            <table className="w-full text-left font-sans text-slate-755">
+              <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b-2 border-slate-200">
+                <tr>
+                  <th className="py-3 px-4">Nombre del Docente</th>
+                  <th className="py-3 px-4 text-center">Sigla Grupo</th>
+                  <th className="py-3 px-4">Materia Asignada</th>
+                  <th className="py-3 px-4">Turno</th>
+                  <th className="py-3 px-4 text-center">Carga de Alumnos</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y-2 divide-slate-100">
+                {grupos.map(g => {
+                  const doc = usuarios.find(u => u.id === g.docente_id);
+                  const mat = materias.find(m => m.id === g.materia_id);
+                  return (
+                    <tr key={g.id} className="hover:bg-slate-50/40">
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                            <User className="w-4 h-4 text-slate-500" />
+                          </div>
+                          <div>
+                            <span className="block font-black text-slate-900 text-sm uppercase">{doc?.nombre_completo || 'SIN DESIGNAR'}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">ID: {doc?.id || 'N/A'}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span className="font-mono font-black text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100">
+                          {g.sigla}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-black text-slate-800 uppercase text-xs">{mat?.nombre || 'General'}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="text-[10px] px-2 py-0.5 rounded font-black border border-slate-200 bg-white text-slate-600 uppercase">
+                          {g.turno}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span className="font-mono font-bold text-slate-500">
+                          {g.estudiantes_ids.length} / {g.cupo_maximo}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

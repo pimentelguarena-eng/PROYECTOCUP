@@ -17,10 +17,11 @@ import {
   FileCheck,
   User,
   Clock,
-  Key
+  Key,
+  Layers,
+  Info
 } from 'lucide-react';
 import { calculateStudentGPA } from '../dataStore';
-import { div } from 'motion/react-client';
 
 interface EstudiantePanelProps {
   user: Usuario;
@@ -397,6 +398,68 @@ export default function EstudiantePanel({
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </div>
+
+            {/* HORARIO DE CLASES DETALLADO */}
+            <div className="bg-white rounded-2xl shadow-md border-2 border-slate-200 p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-105 pb-2">
+                <h4 className="font-sans font-black text-[10px] uppercase tracking-widest text-slate-450 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                  Horario de Clases Presenciales
+                </h4>
+              </div>
+
+              {myEnrolledGroups.length === 0 ? (
+                <p className="text-center py-4 text-slate-400 text-xs italic font-sans">
+                  Horario no disponible sin grupos asignados.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-500 font-sans leading-relaxed">
+                    Las clases se dictan de <strong>Lunes a Viernes</strong> en los ambientes de la Facultad (Campus Universitario).
+                  </p>
+                  
+                  <div className="divide-y divide-slate-100 border rounded-xl overflow-hidden bg-slate-50/30">
+                    {myEnrolledGroups.sort((a,b) => (a.hora_inicio || '').localeCompare(b.hora_inicio || '')).map(g => {
+                      const mat = materias.find(m => m.id === g.materia_id);
+                      return (
+                        <div key={g.id} className="p-3 flex justify-between items-center gap-4 hover:bg-white transition-all">
+                          <div className="space-y-0.5 min-w-0 flex-1">
+                            <p className="text-[11px] font-black text-slate-900 uppercase truncate">
+                              {mat?.nombre.toUpperCase()}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-bold text-slate-400">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-blue-500" />
+                                <span className="text-slate-700 font-black">{g.hora_inicio || '00:00'} - {g.hora_fin || '00:00'}</span>
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Layers className="w-3 h-3 text-emerald-500" />
+                                Módulo <strong className="text-slate-700">{g.modulo || '---'}</strong>
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <BookOpen className="w-3 h-3 text-amber-500" />
+                                Aula <strong className="text-slate-700">{g.aula || '--'}</strong>
+                              </span>
+                            </div>
+                          </div>
+                          <div className="bg-white border-2 border-slate-200 rounded-lg px-2 py-1 shrink-0 text-center shadow-sm">
+                             <p className="text-[8px] font-black text-slate-400 leading-none uppercase">Grupo</p>
+                             <p className="text-[11px] font-black text-slate-800 font-mono leading-tight">{g.sigla.split('-')[1] || g.sigla}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-3 flex gap-2.5">
+                    <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-indigo-800 leading-relaxed font-sans">
+                      <strong>Nota Académica:</strong> Se requiere puntualidad obligatoria. Los ingresos después de 10 minutos de la hora de inicio se computarán como <strong>Falta</strong> en el sistema de asistencias.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

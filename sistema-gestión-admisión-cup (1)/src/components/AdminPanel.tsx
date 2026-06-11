@@ -103,6 +103,38 @@ export default function AdminPanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [historyYear, setHistoryYear] = useState<string>('Todos');
   const [historyQuery, setHistoryQuery] = useState<string>('');
+  
+  // Real-time bitacora state
+  const [liveBitacoras, setLiveBitacoras] = useState<Bitacora[]>(bitacoras);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Sync prop bitacoras to live state initially
+  React.useEffect(() => {
+    setLiveBitacoras(bitacoras);
+  }, [bitacoras]);
+
+  // Polling for real-time bitacora
+  React.useEffect(() => {
+    let interval: any;
+    
+    const fetchLogs = async () => {
+      setIsRefreshing(true);
+      const logs = await LaravelApiClient.getAuditLogs();
+      if (logs && Array.isArray(logs)) {
+        setLiveBitacoras(logs);
+      }
+      setIsRefreshing(false);
+    };
+
+    if (activeSubTab === 'bitacora') {
+      fetchLogs(); // Initial fetch
+      interval = setInterval(fetchLogs, 5000); // Poll every 5 seconds
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeSubTab]);
 
   const [selectedPeriod, setSelectedPeriod] = useState(periodoActivo || '2026/1');
   const [newPeriodInput, setNewPeriodInput] = useState('');
@@ -163,10 +195,8 @@ export default function AdminPanel({
 
   // Auto-calculated fields (as requested in page 4, page 6)
   const totalInscritos = estudiantes.length;
-  // According to page 6: CantidadGrupos = CEIL(TotalInscritos / 80)
-  const ceilingGroupsCount = Math.ceil(totalInscritos / 80);
-  // Also showing the theoretical classrooms limit constraint (70 per group)
-  const classroomsCapacityGroupsCount = Math.ceil(totalInscritos / 70);
+  // According to page 6: CantidadGrupos = CEIL(TotalInscritos / 70)
+  const ceilingGroupsCount = Math.ceil(totalInscritos / 70);
 
   // Count outcomes
   const totalPaid = payments.filter(p => p.estado_pago === 'Pagado').length;
@@ -574,7 +604,7 @@ export default function AdminPanel({
               <h3 className="text-4xl font-black text-indigo-600 mt-1">
                 {ceilingGroupsCount}<span className="text-lg text-slate-400 font-normal">/max</span>
               </h3>
-              <p className="text-xs text-slate-400 mt-2 font-bold uppercase tracking-wider">Límite: CEIL(N/80)</p>
+              <p className="text-xs text-slate-400 mt-2 font-bold uppercase tracking-wider">Límite: CEIL(N/70)</p>
             </div>
             <div className="bg-indigo-50 text-indigo-600 p-3 rounded-xl border border-indigo-100">
               <Building className="w-5 h-5 stroke-[2.5px]" />
@@ -805,22 +835,14 @@ export default function AdminPanel({
           <div className="bg-white rounded-xl border border-slate-100 p-5 shadow-sm space-y-4">
             <h3 className="font-sans font-bold text-slate-900 border-b pb-2">Planificación de Capacidad Física</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm text-slate-600">
+            <div className="text-sm text-slate-600">
               <div className="space-y-2">
-                <p className="font-bold text-slate-800">Fórmula de Relación Teórica:</p>
+                <p className="font-bold text-slate-800">Cálculo Automático de Grupos (Regla FICCT):</p>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 font-mono text-xs space-y-1.5">
-                  <p className="text-indigo-700 font-bold">Cantidad de Grupos = CEIL(TotalInscritos / 80)</p>
-                  <p>Inscritos Actuales: {totalInscritos}</p>
-                  <p className="font-bold text-slate-800">Resultado: {ceilingGroupsCount} Grupos Habilitados</p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="font-bold text-slate-800">Capacidad Física Real de Aulas (Máx 70):</p>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 font-mono text-xs space-y-1.5">
-                  <p className="text-emerald-700 font-bold">Cantidad de Grupos = CEIL(TotalInscritos / 70)</p>
-                  <p>Aulas Máximo 70 Alumnos: {classroomsCapacityGroupsCount}</p>
-                  <p className="text-slate-400">Recomendado para evitar hacinamiento docente.</p>
+                  <p className="text-blue-700 font-bold">Cantidad de Grupos = CEIL(TotalInscritos / 70)</p>
+                  <p>Inscritos Totales: {totalInscritos}</p>
+                  <p className="font-bold text-slate-800 text-sm">Resultado: {ceilingGroupsCount} Grupos Habilitados</p>
+                  <p className="text-[10px] text-slate-400 mt-2 italic">* Según directriz institucional: Cada grupo tendrá máximo 70 estudiantes.</p>
                 </div>
               </div>
             </div>
@@ -960,12 +982,21 @@ export default function AdminPanel({
         <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
             <div>
-              <h3 className="font-sans font-bold text-slate-900 text-sm">Bitácora Transversal de Auditoría de Red (CU8)</h3>
-              <p className="text-xs text-slate-500">Registro histórico de procesos y cambios de estado en la base de datos.</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-sans font-bold text-slate-900 text-sm">Bitácora Transversal de Auditoría de Red (CU8)</h3>
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[9px] font-black animate-pulse">
+                  <div className="w-1 h-1 rounded-full bg-emerald-600"></div>
+                  EN VIVO
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 text-left">Registro histórico de procesos y cambios de estado en la base de datos.</p>
             </div>
-            <span className="text-xs font-mono font-bold bg-slate-200 text-slate-700 px-2.5 py-1 rounded">
-              {bitacoras.length} Líneas
-            </span>
+            <div className="flex items-center gap-3">
+              {isRefreshing && <span className="text-[10px] text-slate-400 font-mono italic">Actualizando...</span>}
+              <span className="text-xs font-mono font-bold bg-slate-200 text-slate-700 px-2.5 py-1 rounded">
+                {liveBitacoras.length} Líneas
+              </span>
+            </div>
           </div>
 
           <div className="overflow-x-auto text-[13px]">
@@ -980,16 +1011,16 @@ export default function AdminPanel({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-sans text-xs">
-                {bitacoras.map(log => (
+                {liveBitacoras.map(log => (
                   <tr key={log.id} className="hover:bg-slate-50/20">
                     <td className="py-3 px-4 font-mono text-[11px] text-slate-500">
                       {new Date(log.created_at).toLocaleString('es-BO')}
                     </td>
                     <td className="py-3 px-4">
-                      <span className="font-semibold block text-slate-800">{log.usuario_nombre || 'SISTEMA'}</span>
-                      <span className="text-[10px] text-slate-400">ID: {log.usuario_id || 'AUTO'}</span>
+                      <span className="font-semibold block text-slate-800 text-left">{log.usuario_nombre || log.usuario?.nombre_completo || 'SISTEMA'}</span>
+                      <span className="text-[10px] text-slate-400 block text-left">ID: {log.usuario_id || 'AUTO'}</span>
                     </td>
-                    <td className="py-3 px-4 text-slate-600 max-w-[300px]">
+                    <td className="py-3 px-4 text-slate-600 max-w-[300px] text-left">
                       {log.accion}
                     </td>
                     <td className="py-3 px-4 text-center font-mono text-[10px]">
@@ -1321,7 +1352,7 @@ export default function AdminPanel({
                       className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
                     />
                     <div className="flex justify-between text-[9px] text-slate-400 font-mono">
-                      <span>51 pts (Mínimo legal)</span>
+                      <span>60 pts (Mínimo CUP)</span>
                       <span>100 pts</span>
                     </div>
                   </div>

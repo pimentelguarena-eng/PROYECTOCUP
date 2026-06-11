@@ -16,6 +16,10 @@ class Grupo extends Model
         'materia_id',
         'docente_id',
         'turno',
+        'modulo',
+        'aula',
+        'hora_inicio',
+        'hora_fin',
         'cupo_maximo'
     ];
 

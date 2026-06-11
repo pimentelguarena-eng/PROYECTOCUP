@@ -71,7 +71,38 @@ export function loadDatabase(): DatabaseState {
     const estudiantes = localStorage.getItem(KEYS.ESTUDIANTES) ? JSON.parse(localStorage.getItem(KEYS.ESTUDIANTES)!) : ESTUDIANTES_INICIALES;
     const docentes = localStorage.getItem(KEYS.DOCENTES) ? JSON.parse(localStorage.getItem(KEYS.DOCENTES)!) : DOCENTES_INICIALES;
     const pagos = localStorage.getItem(KEYS.PAGOS) ? JSON.parse(localStorage.getItem(KEYS.PAGOS)!) : PAGOS_INICIALES;
-    const grupos = localStorage.getItem(KEYS.GRUPOS) ? JSON.parse(localStorage.getItem(KEYS.GRUPOS)!) : GRUPOS_INICIALES;
+    let grupos = localStorage.getItem(KEYS.GRUPOS) ? JSON.parse(localStorage.getItem(KEYS.GRUPOS)!) : GRUPOS_INICIALES;
+    
+    // Data Healing: Ensure groups have schedules and locations (Fix for legacy 00:00 or missing fields)
+    if (Array.isArray(grupos)) {
+      const slots = {
+        'Mañana': ['07:00', '08:00', '09:00', '10:00'],
+        'Tarde': ['13:00', '14:00', '15:00', '16:00'],
+        'Noche': ['18:00', '19:00', '20:00', '21:00'],
+      };
+      const subjectLocations: Record<number, { mod: string, aula: string }> = {
+        1: { mod: '236', aula: '12' },
+        2: { mod: '225', aula: '17' },
+        3: { mod: '227', aula: '24' },
+        4: { mod: '228', aula: '31' }
+      };
+
+      grupos = grupos.map(g => {
+        const loc = subjectLocations[g.materia_id] || { mod: '236', aula: '10' };
+        const hIn = (slots[g.turno as 'Mañana']?.[(g.materia_id - 1) % 4] || '07:00');
+        const hOut = `${(parseInt(hIn.split(':')[0]) + 1).toString().padStart(2, '0')}:00`;
+        
+        return {
+          ...g,
+          modulo: loc.mod,
+          aula: loc.aula,
+          hora_inicio: hIn,
+          hora_fin: hOut
+        };
+      });
+      // Force save healed groups
+      localStorage.setItem(KEYS.GRUPOS, JSON.stringify(grupos));
+    }
     
     let notas = localStorage.getItem(KEYS.NOTAS) ? JSON.parse(localStorage.getItem(KEYS.NOTAS)!) : NOTAS_INICIALES;
     if (Array.isArray(notas)) {

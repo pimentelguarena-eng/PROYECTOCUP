@@ -157,7 +157,18 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+        
+        // Log to Audit Bitacora before token deletion
+        Bitacora::create([
+            'usuario_id' => $user->id,
+            'accion' => 'Cierre de sesión del usuario.',
+            'modulo' => 'AUTH',
+            'ip_address' => $request->ip() ?: '190.181.240.100'
+        ]);
+
+        $user->currentAccessToken()->delete();
+        
         return response()->json([
             'success' => true,
             'message' => 'Sesión cerrada correctamente.'

@@ -141,4 +141,20 @@ export class LaravelApiClient {
       return null;
     }
   }
+
+  /**
+   * Obtener bitácora de auditoría (Solo Administradores)
+   */
+  public static async getAuditLogs(): Promise<any> {
+    try {
+      const response = await fetch(`${LARAVEL_API_BASE}/admin/logs`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+      });
+      return await response.json();
+    } catch (e) {
+      console.info('[Laravel Fallback] Consultando bitácora local.');
+      return null;
+    }
+  }
 }

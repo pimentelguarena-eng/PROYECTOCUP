@@ -12,6 +12,7 @@ interface DocentePanelProps {
   attendances: Asistencia[];
   materias: Materia[];
   onUpdateGrades: (newGrades: Nota[]) => void;
+  onSaveGrade?: (studentId: string, materiaId: number, p1: number, p2: number, ef: number) => Promise<void>;
   onUpdateAttendance: (newAttendances: Asistencia[]) => void;
   onLogAction: (action: string, module: string) => void;
   triggerAlert?: (message: string, title?: string) => void;
@@ -28,6 +29,7 @@ export default function DocentePanel({
   attendances,
   materias,
   onUpdateGrades,
+  onSaveGrade,
   onUpdateAttendance,
   onLogAction,
   triggerAlert,
@@ -53,6 +55,7 @@ export default function DocentePanel({
   // Editable grades state
   const [editingGrades, setEditingGrades] = useState<Record<string, { p1: number; p2: number; final: number }>>({});
   const [tempAttendance, setTempAttendance] = useState<Record<string, 'Presente' | 'Falta'>>({});
+  const [savingGradeId, setSavingGradeId] = useState<string | null>(null);
 
   // Triggering load of values when changing dropdowns
   React.useEffect(() => {
@@ -99,9 +102,19 @@ export default function DocentePanel({
     }));
   };
 
-  const handleSaveGrades = (studentId: string) => {
+  const handleSaveGrades = async (studentId: string) => {
     const edits = editingGrades[studentId];
     if (!edits || !activeGroup) return;
+
+    if (onSaveGrade) {
+      setSavingGradeId(studentId);
+      try {
+        await onSaveGrade(studentId, activeGroup.materia_id, edits.p1, edits.p2, edits.final);
+      } finally {
+        setSavingGradeId(null);
+      }
+      return;
+    }
 
     // Recalculate average: (Ex1 + Ex2 + Ex3) / 3 * 10 to scale to 100 points
     const finalSubjectAvg = parseFloat((((edits.p1 + edits.p2 + edits.final) / 3) * 10).toFixed(2));
@@ -250,6 +263,8 @@ export default function DocentePanel({
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs space-y-2.5 font-sans text-slate-600">
                 <p className="font-black text-[10px] text-slate-400 uppercase tracking-widest border-b border-slate-200 pb-1.5">Detalle Del Aula</p>
                 <p>Materia: <span className="font-extrabold text-slate-900">{activeMateria?.nombre.toUpperCase()}</span></p>
+                <p>Horario: <span className="font-extrabold text-slate-900">{activeGroup.hora_inicio || '07:00'} - {activeGroup.hora_fin || '08:00'}</span></p>
+                <p>Ubicación: <span className="font-extrabold text-slate-900">MOD {activeGroup.modulo || '236'} - AULA {activeGroup.aula || '10'}</span></p>
                 <p>Turno: <span className="font-extrabold text-slate-900">{activeGroup.turno.toUpperCase()}</span></p>
                 <p>Inscritos: <span className="font-extrabold text-slate-900">{groupStudents.length} / {activeGroup.cupo_maximo} alumnos</span></p>
                 <div className="w-full bg-slate-200 rounded-full h-1.5 mt-1">
@@ -398,11 +413,18 @@ export default function DocentePanel({
                           <td className="py-3 px-4 text-center">
                             <button
                               onClick={() => handleSaveGrades(st.usuario_id)}
-                              className="cursor-pointer bg-slate-900 text-white hover:bg-slate-800 p-1.5 rounded transition-all inline-flex items-center gap-1.5 text-xs font-semibold"
+                              disabled={savingGradeId === st.usuario_id}
+                              className={`cursor-pointer ${
+                                savingGradeId === st.usuario_id ? 'bg-slate-400' : 'bg-slate-900 hover:bg-slate-800'
+                              } text-white p-1.5 rounded transition-all inline-flex items-center gap-1.5 text-xs font-semibold`}
                               title="Salvar notas de esta materia"
                             >
-                              <Save className="w-3.5 h-3.5" />
-                              Guardar
+                              {savingGradeId === st.usuario_id ? (
+                                <span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                              ) : (
+                                <Save className="w-3.5 h-3.5" />
+                              )}
+                              {savingGradeId === st.usuario_id ? 'Guardando...' : 'Guardar'}
                             </button>
                           </td>
                           {/* Attendance Section buttons */}

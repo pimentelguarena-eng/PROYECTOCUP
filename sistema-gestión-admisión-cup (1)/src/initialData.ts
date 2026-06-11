@@ -558,6 +558,10 @@ export const GRUPOS_INICIALES: Grupo[] = [
     materia_id: 1, // Computación
     docente_id: 'u-doc-1',
     turno: 'Mañana',
+    modulo: '236',
+    aula: '12',
+    hora_inicio: '07:00',
+    hora_fin: '08:00',
     cupo_maximo: 70,
     estudiantes_ids: ['u-est-1', 'u-est-2', 'u-est-3', 'u-est-4', 'u-est-5', 'u-est-6', 'u-est-7', 'u-est-8', 'u-est-9', 'u-est-10'],
   },
@@ -567,6 +571,10 @@ export const GRUPOS_INICIALES: Grupo[] = [
     materia_id: 2, // Matemáticas
     docente_id: 'u-doc-2',
     turno: 'Mañana',
+    modulo: '225',
+    aula: '17',
+    hora_inicio: '08:00',
+    hora_fin: '09:00',
     cupo_maximo: 70,
     estudiantes_ids: ['u-est-1', 'u-est-2', 'u-est-3', 'u-est-4', 'u-est-5', 'u-est-6', 'u-est-7', 'u-est-8', 'u-est-9', 'u-est-10'],
   },
@@ -576,6 +584,10 @@ export const GRUPOS_INICIALES: Grupo[] = [
     materia_id: 3, // Inglés
     docente_id: 'u-doc-3',
     turno: 'Tarde',
+    modulo: '227',
+    aula: '24',
+    hora_inicio: '14:00',
+    hora_fin: '15:00',
     cupo_maximo: 70,
     estudiantes_ids: ['u-est-1', 'u-est-2', 'u-est-3', 'u-est-4', 'u-est-5', 'u-est-6', 'u-est-7', 'u-est-8', 'u-est-9', 'u-est-10'],
   },
@@ -585,6 +597,10 @@ export const GRUPOS_INICIALES: Grupo[] = [
     materia_id: 4, // Física
     docente_id: 'u-doc-4',
     turno: 'Noche',
+    modulo: '228',
+    aula: '31',
+    hora_inicio: '19:00',
+    hora_fin: '20:00',
     cupo_maximo: 70,
     estudiantes_ids: ['u-est-1', 'u-est-2', 'u-est-3', 'u-est-4', 'u-est-5', 'u-est-6', 'u-est-7', 'u-est-8', 'u-est-10'],
   },
